@@ -73,6 +73,26 @@ fun WordUi(vm: WordViewModel = viewModel()) {
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
 
+    if (vm.shouldStartNewGame) {
+        AlertDialog(
+            onDismissRequest = { vm.shouldStartNewGame = false },
+            title = { Text("New Game?") },
+            text = { Text("Are you sure? You will lose all your progress.") },
+            confirmButton = { TextButton(onClick = vm::getWord) { Text("Yes") } },
+            dismissButton = { TextButton(onClick = { vm.shouldStartNewGame = false }) { Text("No") } }
+        )
+    }
+
+    if (vm.finishGame) {
+        AlertDialog(
+            onDismissRequest = { vm.finishGame = false },
+            title = { Text("Finish Game?") },
+            text = { Text("Are you sure? You will lose all your progress.") },
+            confirmButton = { TextButton(onClick = vm::endGame) { Text("Yes") } },
+            dismissButton = { TextButton(onClick = { vm.finishGame = false }) { Text("No") } }
+        )
+    }
+
     ModalNavigationDrawer(
         drawerContent = {
             ModalDrawerSheet {
@@ -111,7 +131,8 @@ fun WordUi(vm: WordViewModel = viewModel()) {
                 TopAppBar(
                     title = { Text("Guess the Words") },
                     actions = {
-                        TextButton(onClick = vm::getWord) { Text("New Game") }
+                        TextButton(onClick = { vm.finishGame = true }) { Text("Finish") }
+                        TextButton(onClick = { vm.shouldStartNewGame = true }) { Text("New Game") }
                     }
                 )
             },
@@ -187,6 +208,9 @@ fun WordUi(vm: WordViewModel = viewModel()) {
 
 class WordViewModel : ViewModel() {
 
+    var shouldStartNewGame by mutableStateOf(false)
+    var finishGame by mutableStateOf(false)
+
     var isLoading by mutableStateOf(false)
 
     var mainLetters by mutableStateOf("")
@@ -223,7 +247,13 @@ class WordViewModel : ViewModel() {
             }
             anagrams = withContext(Dispatchers.IO) { getAnagram(mainLetters).orEmpty() }
             isLoading = false
+            shouldStartNewGame = false
         }
+    }
+
+    fun endGame() {
+        wordGuesses.clear()
+        wordGuesses.addAll(anagramWords)
     }
 
     fun shuffle() {
