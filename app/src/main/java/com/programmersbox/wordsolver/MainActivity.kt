@@ -47,6 +47,7 @@ import io.ktor.serialization.kotlinx.json.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.json.Json
 import java.util.*
 
@@ -243,7 +244,6 @@ class WordViewModel : ViewModel() {
 
     var shouldStartNewGame by mutableStateOf(false)
     var finishGame by mutableStateOf(false)
-
     var isLoading by mutableStateOf(false)
 
     var mainLetters by mutableStateOf("")
@@ -257,7 +257,6 @@ class WordViewModel : ViewModel() {
     }
 
     val wordGuesses = mutableStateListOf<String>()
-
     var wordGuess by mutableStateOf("")
 
     var definition by mutableStateOf<BaseDefinition?>(null)
@@ -322,20 +321,21 @@ class WordViewModel : ViewModel() {
                 definitionMap[word]
             } else {
                 isLoading = true
-                withContext(Dispatchers.IO) { getWordDefinition(word) }
-                    .firstOrNull()
-                    ?.also {
-                        isLoading = false
-                        definitionMap[word] = it
-                    }
+                withTimeoutOrNull(10000) {
+                    withContext(Dispatchers.IO) { getWordDefinition(word) }
+                        .firstOrNull()
+                        ?.also {
+                            isLoading = false
+                            definitionMap[word] = it
+                        }
+                }
             }
             onComplete()
         }
     }
 }
 
-suspend fun getLetters() =
-    getApi<List<String>>("https://random-word-api.herokuapp.com/word?length=7").orEmpty()
+suspend fun getLetters() = getApi<List<String>>("https://random-word-api.herokuapp.com/word?length=7").orEmpty()
 
 suspend fun getAnagram(letters: String) =
     getApi<HttpResponse>("https://danielthepope-countdown-v1.p.rapidapi.com/solve/$letters?variance=-1") {
@@ -396,7 +396,6 @@ data class Definitions(
 data class Meanings(val partOfSpeech: String?, val definitions: List<Definitions>?)
 
 data class Phonetics(val text: String?, val audio: String?)
-
 
 @Preview(showBackground = true)
 @Composable
