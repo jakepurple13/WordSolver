@@ -2,6 +2,7 @@ package com.programmersbox.wordsolver
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.animateContentSize
@@ -79,6 +80,10 @@ fun WordUi(vm: WordViewModel = viewModel()) {
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
+
+    BackHandler(drawerState.isOpen) {
+        scope.launch { drawerState.close() }
+    }
 
     if (vm.shouldStartNewGame) {
         AlertDialog(
