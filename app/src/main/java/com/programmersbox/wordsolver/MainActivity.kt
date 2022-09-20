@@ -187,6 +187,7 @@ fun WordUi(vm: WordViewModel = viewModel()) {
                                         scope.launch {
                                             val guessed = vm.guess()
                                             val message = if (guessed) "Got it!" else "Not in List"
+                                            snackbarHostState.currentSnackbarData?.dismiss()
                                             snackbarHostState.showSnackbar(message, duration = SnackbarDuration.Short)
                                         }
                                     }
