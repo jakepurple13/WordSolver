@@ -195,8 +195,7 @@ fun WordUi(vm: WordViewModel = viewModel()) {
                                 IconButton(
                                     onClick = {
                                         scope.launch {
-                                            val guessed = vm.guess()
-                                            val message = if (guessed) "Got it!" else "Not in List"
+                                            val message = vm.guess()
                                             snackbarHostState.currentSnackbarData?.dismiss()
                                             snackbarHostState.showSnackbar(message, duration = SnackbarDuration.Short)
                                         }
@@ -305,12 +304,16 @@ class WordViewModel : ViewModel() {
         }
     }
 
-    fun guess(): Boolean = if (anagramWords.any { it.equals(wordGuess, ignoreCase = true) }) {
-        wordGuesses += wordGuess
-        wordGuess = ""
-        true
-    } else {
-        false
+    fun guess(): String {
+        return when {
+            wordGuesses.contains(wordGuess) -> "Already Guessed"
+            anagramWords.any { it.equals(wordGuess, ignoreCase = true) } -> {
+                wordGuesses += wordGuess
+                wordGuess = ""
+                "Got it!"
+            }
+            else -> "Not in List"
+        }
     }
 
     fun getDefinition(word: String, onComplete: () -> Unit) {
