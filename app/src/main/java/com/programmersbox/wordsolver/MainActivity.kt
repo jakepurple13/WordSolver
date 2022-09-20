@@ -185,7 +185,9 @@ fun WordUi(vm: WordViewModel = viewModel()) {
                 verticalArrangement = Arrangement.spacedBy(2.dp),
                 horizontalArrangement = Arrangement.spacedBy(2.dp),
                 contentPadding = padding,
-                modifier = Modifier.fillMaxSize()
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(vertical = 2.dp)
             ) {
                 items(vm.anagramWords.sortedByDescending { it.length }) { anagrams ->
                     Crossfade(targetState = vm.wordGuesses.any { it.equals(anagrams, true) }) { state ->
@@ -219,9 +221,10 @@ class WordViewModel : ViewModel() {
 
     private var anagrams by mutableStateOf(emptyList<Anagrams>())
     val anagramWords by derivedStateOf {
+        val size = if (anagrams.size > 50) 4 else 3
         anagrams
             .mapNotNull { it.word }
-            .filterNot { it.length < 3 }
+            .filterNot { it.length < size }
     }
 
     val wordGuesses = mutableStateListOf<String>()
@@ -266,6 +269,7 @@ class WordViewModel : ViewModel() {
     }
 
     fun updateGuess(word: String) {
+        //TODO: Final thing is to make sure only the letters chosen can be pressed
         if (word.toList().all { mainLetters.contains(it) }) {
             wordGuess = word
         }
