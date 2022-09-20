@@ -268,6 +268,7 @@ class WordViewModel : ViewModel() {
 
     fun getWord() {
         viewModelScope.launch {
+            shouldStartNewGame = false
             isLoading = true
             definitionMap.clear()
             wordGuesses.clear()
@@ -282,7 +283,6 @@ class WordViewModel : ViewModel() {
             }
             anagrams = withContext(Dispatchers.IO) { getAnagram(mainLetters).orEmpty() }
             isLoading = false
-            shouldStartNewGame = false
         }
     }
 
