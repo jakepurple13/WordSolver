@@ -74,6 +74,7 @@ fun WordUi(vm: WordViewModel = viewModel()) {
 
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
+    val snackbarHostState = remember { SnackbarHostState() }
 
     if (vm.shouldStartNewGame) {
         AlertDialog(
@@ -181,12 +182,21 @@ fun WordUi(vm: WordViewModel = viewModel()) {
                             Column {
                                 IconButton(onClick = vm::shuffle) { Icon(Icons.Default.Shuffle, null) }
                                 IconButton(onClick = { vm.wordGuess = "" }) { Icon(Icons.Default.Clear, null) }
-                                IconButton(onClick = vm::guess) { Icon(Icons.Default.Send, null) }
+                                IconButton(
+                                    onClick = {
+                                        scope.launch {
+                                            val guessed = vm.guess()
+                                            val message = if (guessed) "Got it!" else "Not in List"
+                                            snackbarHostState.showSnackbar(message, duration = SnackbarDuration.Short)
+                                        }
+                                    }
+                                ) { Icon(Icons.Default.Send, null) }
                             }
                         }
                     }
                 )
-            }
+            },
+            snackbarHost = { SnackbarHost(snackbarHostState) }
         ) { padding ->
             LazyVerticalGrid(
                 columns = GridCells.Fixed(2),
@@ -283,11 +293,12 @@ class WordViewModel : ViewModel() {
         }
     }
 
-    fun guess() {
-        if (anagramWords.any { it.equals(wordGuess, ignoreCase = true) }) {
-            wordGuesses += wordGuess
-            wordGuess = ""
-        }
+    fun guess(): Boolean = if (anagramWords.any { it.equals(wordGuess, ignoreCase = true) }) {
+        wordGuesses += wordGuess
+        wordGuess = ""
+        true
+    } else {
+        false
     }
 
     fun getDefinition(word: String, onComplete: () -> Unit) {
