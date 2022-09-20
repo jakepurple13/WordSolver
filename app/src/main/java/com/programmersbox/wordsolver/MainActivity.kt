@@ -35,7 +35,7 @@ import androidx.core.view.WindowCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.google.gson.Gson
+import com.google.gson.GsonBuilder
 import com.google.gson.reflect.TypeToken
 import com.programmersbox.wordsolver.ui.theme.WordSolverTheme
 import io.ktor.client.*
@@ -326,9 +326,9 @@ class WordViewModel : ViewModel() {
                 definitionMap[word]
             } else {
                 isLoading = true
-                withTimeoutOrNull(10000) {
-                    withContext(Dispatchers.IO) { getWordDefinition(word) }
-                        .firstOrNull()
+                withContext(Dispatchers.IO) {
+                    withTimeoutOrNull(10000) { getWordDefinition(word) }
+                        ?.firstOrNull()
                         ?.also {
                             isLoading = false
                             definitionMap[word] = it
@@ -375,7 +375,10 @@ suspend inline fun <reified T> getApi(
 }
 
 inline fun <reified T> String?.fromJson(): T? = try {
-    Gson().fromJson(this, object : TypeToken<T>() {}.type)
+    GsonBuilder()
+        .setLenient()
+        .create()
+        .fromJson(this, object : TypeToken<T>() {}.type)
 } catch (e: Exception) {
     e.printStackTrace()
     null
