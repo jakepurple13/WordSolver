@@ -24,6 +24,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -98,8 +99,15 @@ fun WordUi(vm: WordViewModel = viewModel()) {
         drawerContent = {
             ModalDrawerSheet {
                 vm.definition?.let { definition ->
+                    val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
                     Scaffold(
-                        topBar = { CenterAlignedTopAppBar(title = { Text(definition.word.orEmpty()) }) }
+                        topBar = {
+                            CenterAlignedTopAppBar(
+                                title = { Text(definition.word.orEmpty()) },
+                                scrollBehavior = scrollBehavior
+                            )
+                        },
+                        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection)
                     ) { padding ->
                         LazyColumn(
                             contentPadding = padding,
