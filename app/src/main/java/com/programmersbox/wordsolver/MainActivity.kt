@@ -15,6 +15,7 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Send
 import androidx.compose.material.icons.filled.Shuffle
 import androidx.compose.material3.*
@@ -140,33 +141,38 @@ fun WordUi(vm: WordViewModel = viewModel()) {
             bottomBar = {
                 CustomBottomAppBar(
                     actions = {
-                        Column {
-                            Row(
-                                horizontalArrangement = Arrangement.SpaceAround,
-                                modifier = Modifier.animateContentSize()
-                            ) {
-                                vm.mainLetters.forEach {
-                                    OutlinedIconButton(
-                                        onClick = { vm.updateGuess("${vm.wordGuess}$it") },
-                                        border = BorderStroke(
-                                            1.dp,
-                                            MaterialTheme.colorScheme.primary.copy(alpha = .5f)
-                                        ),
-                                    ) { Text(it.toString()) }
+                        Row {
+                            Column {
+                                Row(
+                                    horizontalArrangement = Arrangement.SpaceAround,
+                                    modifier = Modifier.animateContentSize()
+                                ) {
+                                    vm.mainLetters.forEach {
+                                        OutlinedIconButton(
+                                            onClick = { vm.updateGuess("${vm.wordGuess}$it") },
+                                            border = BorderStroke(
+                                                1.dp,
+                                                MaterialTheme.colorScheme.primary.copy(alpha = .5f)
+                                            ),
+                                        ) { Text(it.uppercase()) }
+                                    }
                                 }
-                                IconButton(onClick = vm::shuffle) { Icon(Icons.Default.Shuffle, null) }
-                            }
 
-                            Row(
-                                horizontalArrangement = Arrangement.SpaceAround,
-                                modifier = Modifier.animateContentSize()
-                            ) {
-                                vm.wordGuess.forEachIndexed { index, c ->
-                                    OutlinedIconButton(
-                                        onClick = { vm.updateGuess(vm.wordGuess.removeRange(index, index + 1)) },
-                                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary)
-                                    ) { Text(c.toString()) }
+                                Row(
+                                    horizontalArrangement = Arrangement.SpaceAround,
+                                    modifier = Modifier.animateContentSize()
+                                ) {
+                                    vm.wordGuess.forEachIndexed { index, c ->
+                                        OutlinedIconButton(
+                                            onClick = { vm.updateGuess(vm.wordGuess.removeRange(index, index + 1)) },
+                                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary)
+                                        ) { Text(c.uppercase()) }
+                                    }
                                 }
+                            }
+                            Column {
+                                IconButton(onClick = vm::shuffle) { Icon(Icons.Default.Shuffle, null) }
+                                IconButton(onClick = { vm.wordGuess = "" }) { Icon(Icons.Default.Clear, null) }
                                 IconButton(onClick = vm::guess) { Icon(Icons.Default.Send, null) }
                             }
                         }
@@ -252,6 +258,7 @@ class WordViewModel : ViewModel() {
     fun endGame() {
         wordGuesses.clear()
         wordGuesses.addAll(anagramWords)
+        finishGame = false
     }
 
     fun shuffle() {
