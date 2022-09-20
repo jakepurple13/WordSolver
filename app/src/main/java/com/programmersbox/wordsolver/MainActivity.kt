@@ -47,6 +47,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
+import java.util.*
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -104,7 +105,12 @@ fun WordUi(vm: WordViewModel = viewModel()) {
                     Scaffold(
                         topBar = {
                             CenterAlignedTopAppBar(
-                                title = { Text(definition.word.orEmpty()) },
+                                title = {
+                                    Text(
+                                        definition.word.orEmpty()
+                                            .replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() }
+                                    )
+                                },
                                 scrollBehavior = scrollBehavior
                             )
                         },
@@ -136,6 +142,7 @@ fun WordUi(vm: WordViewModel = viewModel()) {
         drawerState = drawerState,
         gesturesEnabled = vm.definition != null
     ) {
+        val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
         Scaffold(
             topBar = {
                 TopAppBar(
@@ -144,7 +151,8 @@ fun WordUi(vm: WordViewModel = viewModel()) {
                         Text("${vm.wordGuesses.size}/${vm.anagramWords.size}")
                         TextButton(onClick = { vm.finishGame = true }) { Text("Finish") }
                         TextButton(onClick = { vm.shouldStartNewGame = true }) { Text("New Game") }
-                    }
+                    },
+                    scrollBehavior = scrollBehavior
                 )
             },
             bottomBar = {
@@ -197,7 +205,8 @@ fun WordUi(vm: WordViewModel = viewModel()) {
                     }
                 )
             },
-            snackbarHost = { SnackbarHost(snackbarHostState) }
+            snackbarHost = { SnackbarHost(snackbarHostState) },
+            modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection)
         ) { padding ->
             LazyVerticalGrid(
                 columns = GridCells.Fixed(2),
