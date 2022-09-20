@@ -131,6 +131,7 @@ fun WordUi(vm: WordViewModel = viewModel()) {
                 TopAppBar(
                     title = { Text("Guess the Words") },
                     actions = {
+                        Text("${vm.wordGuesses.size}/${vm.anagramWords.size}")
                         TextButton(onClick = { vm.finishGame = true }) { Text("Finish") }
                         TextButton(onClick = { vm.shouldStartNewGame = true }) { Text("New Game") }
                     }
@@ -181,12 +182,7 @@ fun WordUi(vm: WordViewModel = viewModel()) {
                 modifier = Modifier.fillMaxSize()
             ) {
                 items(vm.anagramWords.sortedByDescending { it.length }) { anagrams ->
-                    Crossfade(targetState = vm.wordGuesses.any {
-                        it.equals(
-                            anagrams,
-                            true
-                        )
-                    }) { state ->
+                    Crossfade(targetState = vm.wordGuesses.any { it.equals(anagrams, true) }) { state ->
                         if (state) {
                             OutlinedCard(
                                 onClick = { vm.getDefinition(anagrams) { scope.launch { drawerState.open() } } }
@@ -237,6 +233,8 @@ class WordViewModel : ViewModel() {
         viewModelScope.launch {
             isLoading = true
             definitionMap.clear()
+            wordGuesses.clear()
+            wordGuess = ""
             mainLetters = withContext(Dispatchers.IO) {
                 getLetters()
                     .firstOrNull()
