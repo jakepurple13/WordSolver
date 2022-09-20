@@ -4,6 +4,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.animation.Crossfade
+import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -13,9 +14,9 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Send
+import androidx.compose.material.icons.filled.Shuffle
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -41,9 +42,6 @@ import io.ktor.client.statement.*
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.collect
-import kotlinx.coroutines.flow.filterNotNull
-import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
@@ -73,8 +71,7 @@ fun WordUi(vm: WordViewModel = viewModel()) {
     )
 
     val drawerState = rememberDrawerState(DrawerValue.Closed)
-
-    LaunchedEffect(vm.definition) { if (vm.definition != null) drawerState.open() }
+    val scope = rememberCoroutineScope()
 
     ModalNavigationDrawer(
         drawerContent = {
@@ -118,31 +115,37 @@ fun WordUi(vm: WordViewModel = viewModel()) {
                     }
                 )
             },
-            floatingActionButton = {
-                FloatingActionButton(onClick = vm::guess) {
-                    Icon(Icons.Default.Send, null)
-                }
-            },
             bottomBar = {
                 CustomBottomAppBar(
                     actions = {
                         Column {
-                            Row(horizontalArrangement = Arrangement.SpaceAround) {
+                            Row(
+                                horizontalArrangement = Arrangement.SpaceAround,
+                                modifier = Modifier.animateContentSize()
+                            ) {
                                 vm.mainLetters.forEach {
-                                    TextButton(
+                                    OutlinedIconButton(
                                         onClick = { vm.updateGuess("${vm.wordGuess}$it") },
-                                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary),
+                                        border = BorderStroke(
+                                            1.dp,
+                                            MaterialTheme.colorScheme.primary.copy(alpha = .5f)
+                                        ),
                                     ) { Text(it.toString()) }
                                 }
+                                IconButton(onClick = vm::shuffle) { Icon(Icons.Default.Shuffle, null) }
                             }
 
-                            Row(horizontalArrangement = Arrangement.SpaceAround) {
+                            Row(
+                                horizontalArrangement = Arrangement.SpaceAround,
+                                modifier = Modifier.animateContentSize()
+                            ) {
                                 vm.wordGuess.forEachIndexed { index, c ->
-                                    TextButton(
+                                    OutlinedIconButton(
                                         onClick = { vm.updateGuess(vm.wordGuess.removeRange(index, index + 1)) },
                                         border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary)
                                     ) { Text(c.toString()) }
                                 }
+                                IconButton(onClick = vm::guess) { Icon(Icons.Default.Send, null) }
                             }
                         }
                     }
@@ -165,7 +168,7 @@ fun WordUi(vm: WordViewModel = viewModel()) {
                     }) { state ->
                         if (state) {
                             OutlinedCard(
-                                onClick = { vm.getDefinition(anagrams) }
+                                onClick = { vm.getDefinition(anagrams) { scope.launch { drawerState.open() } } }
                             ) { ListItem(headlineText = { Text(anagrams) }) }
                         } else {
                             ElevatedCard {
@@ -223,6 +226,10 @@ class WordViewModel : ViewModel() {
         }
     }
 
+    fun shuffle() {
+        mainLetters = mainLetters.toList().shuffled().joinToString("")
+    }
+
     fun updateGuess(word: String) {
         if (word.toList().all { mainLetters.contains(it) }) {
             wordGuess = word
@@ -236,9 +243,8 @@ class WordViewModel : ViewModel() {
         }
     }
 
-    fun getDefinition(word: String) {
+    fun getDefinition(word: String, onComplete: () -> Unit) {
         viewModelScope.launch {
-            println(definitionMap.entries.joinToString { "${it.key} == ${it.value}" })
             definition = if (definitionMap.contains(word)) {
                 definitionMap[word]
             } else {
@@ -250,6 +256,7 @@ class WordViewModel : ViewModel() {
                         definitionMap[word] = it
                     }
             }
+            onComplete()
         }
     }
 }
