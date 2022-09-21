@@ -31,7 +31,7 @@ jobs:
           wrapper-cache-enabled: true
           dependencies-cache-enabled: true
           configuration-cache-enabled: true
-          arguments: app:assembleRelease
+          arguments: app:bundleRelease
 
       - uses: r0adkll/sign-android-release@v1
         name: Sign app APK
