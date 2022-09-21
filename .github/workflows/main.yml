@@ -33,6 +33,10 @@ jobs:
           configuration-cache-enabled: true
           arguments: app:bundleRelease
 
+      - name: Find aab
+        run: |
+          ls app
+
       - uses: r0adkll/sign-android-release@v1
         name: Sign app APK
         id: anagram_sign
