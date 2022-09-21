@@ -37,7 +37,7 @@ jobs:
         name: Sign app APK
         id: anagram_sign
         with:
-          releaseDirectory: app/build/outputs/apk/full/release
+          releaseDirectory: app/release/app-release.aab
           signingKeyBase64: ${{ secrets.SIGNING_KEY }}
           alias: ${{ secrets.ALIAS }}
           keyStorePassword: ${{ secrets.KEYSTORE_PASSWORD }}
@@ -45,12 +45,12 @@ jobs:
 
       - name: Clean up build artifacts
         run: |
-          cp ${{ steps.anagram_sign.outputs.signedReleaseFile }} anagramer-release.apk
+          cp ${{ steps.anagram_sign.outputs.signedReleaseFile }} anagramer-release.aab
 
       - uses: actions/upload-artifact@v3
         with:
           name: Signed Anagramer App
-          path: anagramer-release.apk
+          path: anagramer-release.aab
 
   release:
     name: Release APK
@@ -80,4 +80,4 @@ jobs:
           tag_name: ${{ env.VERSION_TAG }}
           name: Release ${{ env.VERSION_TAG }}
           files: |
-            anagramer-release.apk
+            anagramer-release.aab
