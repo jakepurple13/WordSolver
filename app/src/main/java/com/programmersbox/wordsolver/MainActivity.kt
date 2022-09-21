@@ -428,10 +428,10 @@ suspend fun getLetters() = runCatching {
 }
 
 suspend fun getAnagram(letters: String) = runCatching {
-    getApi<HttpResponse>("https://danielthepope-countdown-v1.p.rapidapi.com/solve/$letters?variance=-1") {
+    getApiResponse("https://danielthepope-countdown-v1.p.rapidapi.com/solve/$letters?variance=-1") {
         append("X-RapidAPI-Host", "danielthepope-countdown-v1.p.rapidapi.com")
         append("X-RapidAPI-Key", "cefe1904a6msh94a1484f93d57dbp16f734jsn098d9ecefd68")
-    }?.bodyAsText().fromJson<List<Anagrams>>()
+    }.bodyAsText().fromJson<List<Anagrams>>()
 }
 
 suspend fun getWordDefinition(word: String) = runCatching {
