@@ -21,6 +21,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Send
 import androidx.compose.material.icons.filled.Shuffle
+import androidx.compose.material.icons.filled.Undo
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -243,7 +244,9 @@ fun WordUi(
 
                                 Row(
                                     horizontalArrangement = Arrangement.SpaceAround,
-                                    modifier = Modifier.animateContentSize()
+                                    modifier = Modifier
+                                        .animateContentSize()
+                                        .height(48.dp)
                                 ) {
                                     vm.wordGuess.forEachIndexed { index, c ->
                                         OutlinedIconButton(
@@ -251,6 +254,14 @@ fun WordUi(
                                             border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary)
                                         ) { Text(c.uppercase()) }
                                     }
+                                }
+
+                                Row(
+                                    horizontalArrangement = Arrangement.SpaceAround,
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.animateContentSize()
+                                ) {
+                                    IconButton(onClick = vm::bringBackWord) { Icon(Icons.Default.Undo, null) }
                                 }
                             }
                             Column {
@@ -327,6 +338,7 @@ class WordViewModel(context: Context) : ViewModel() {
 
     var wordGuesses by mutableStateOf<List<String>>(emptyList())
     var wordGuess by mutableStateOf("")
+    private var prevGuess = ""
 
     var definition by mutableStateOf<BaseDefinition?>(null)
     private val definitionMap = mutableMapOf<String, BaseDefinition>()
@@ -412,6 +424,10 @@ class WordViewModel(context: Context) : ViewModel() {
         }
     }
 
+    fun bringBackWord() {
+        wordGuess = prevGuess
+    }
+
     fun guess(): String {
         return when {
             wordGuesses.contains(wordGuess) -> "Already Guessed"
@@ -419,6 +435,7 @@ class WordViewModel(context: Context) : ViewModel() {
                 val list = wordGuesses.toMutableList()
                 list.add(wordGuess)
                 viewModelScope.launch { savedDataHandling.updateWordGuesses(list) }
+                prevGuess = wordGuess
                 wordGuess = ""
                 "Got it!"
             }
