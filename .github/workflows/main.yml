@@ -33,15 +33,11 @@ jobs:
           configuration-cache-enabled: true
           arguments: app:bundleRelease
 
-      - name: Find aab
-        run: |
-          ls app
-
       - uses: r0adkll/sign-android-release@v1
         name: Sign app APK
         id: anagram_sign
         with:
-          releaseDirectory: app/release/app-release.aab
+          releaseDirectory: app/build/outputs/bundle/release/app-release.aab
           signingKeyBase64: ${{ secrets.SIGNING_KEY }}
           alias: ${{ secrets.ALIAS }}
           keyStorePassword: ${{ secrets.KEYSTORE_PASSWORD }}
