@@ -353,7 +353,7 @@ class WordViewModel(context: Context) : ViewModel() {
                 .collect()
         }
         viewModelScope.launch {
-            if (!savedDataHandling.haveSavedData()) {
+            if (!savedDataHandling.hasSavedData()) {
                 getWord()
             }
         }
@@ -709,7 +709,7 @@ class SavedDataHandling(private val context: Context) {
         context.dataStore.edit { it[ANAGRAMS] = anagrams.toJson() }
     }
 
-    suspend fun haveSavedData(): Boolean {
+    suspend fun hasSavedData(): Boolean {
         return context.dataStore.data.map {
             it[MAIN_LETTERS] != null && it[WORD_GUESSES] != null && it[ANAGRAMS] != null
         }.firstOrNull() ?: false
