@@ -86,6 +86,18 @@ fun WordUi(vm: WordViewModel = viewModel()) {
     var goingBack by remember { mutableStateOf(true) }
     val context = LocalContext.current
 
+    LaunchedEffect(vm.error) {
+        if (vm.error != null) {
+            snackbarHostState.currentSnackbarData?.dismiss()
+            when (snackbarHostState.showSnackbar(vm.error!!, duration = SnackbarDuration.Long)) {
+                SnackbarResult.Dismissed -> vm.error = null
+                else -> {}
+            }
+        } else {
+            snackbarHostState.currentSnackbarData?.dismiss()
+        }
+    }
+
     BackHandler(goingBack) {
         if (drawerState.isOpen) {
             scope.launch { drawerState.close() }
@@ -294,6 +306,8 @@ class WordViewModel : ViewModel() {
     var definition by mutableStateOf<BaseDefinition?>(null)
     private val definitionMap = mutableMapOf<String, BaseDefinition>()
 
+    var error: String? by mutableStateOf(null)
+
     init {
         getWord()
     }
@@ -307,13 +321,31 @@ class WordViewModel : ViewModel() {
             wordGuess = ""
             mainLetters = withContext(Dispatchers.IO) {
                 getLetters()
-                    .firstOrNull()
-                    .orEmpty()
-                    .toList()
-                    .shuffled()
-                    .joinToString("")
+                    .fold(
+                        onSuccess = {
+                            it.firstOrNull()
+                                .orEmpty()
+                                .toList()
+                                .shuffled()
+                                .joinToString("")
+                        },
+                        onFailure = {
+                            withContext(Dispatchers.Main) { error = "Something went Wrong" }
+                            ""
+                        }
+                    )
+
             }
-            anagrams = withContext(Dispatchers.IO) { getAnagram(mainLetters).orEmpty() }
+            anagrams = withContext(Dispatchers.IO) {
+                getAnagram(mainLetters)
+                    .fold(
+                        onSuccess = { it.orEmpty() },
+                        onFailure = {
+                            withContext(Dispatchers.Main) { error = "Something went Wrong" }
+                            emptyList()
+                        }
+                    )
+            }
             isLoading = false
         }
     }
@@ -350,36 +382,52 @@ class WordViewModel : ViewModel() {
     fun getDefinition(word: String, onComplete: () -> Unit) {
         viewModelScope.launch {
             definition = if (definitionMap.contains(word)) {
+                onComplete()
                 definitionMap[word]
             } else {
                 isLoading = true
                 withContext(Dispatchers.IO) {
                     withTimeoutOrNull(10000) { getWordDefinition(word) }
-                        ?.firstOrNull()
-                        ?.also {
-                            isLoading = false
-                            definitionMap[word] = it
-                        }
+                        ?.fold(
+                            onSuccess = {
+                                it.firstOrNull()
+                                    ?.also {
+                                        isLoading = false
+                                        definitionMap[word] = it
+                                        onComplete()
+                                    }
+                            },
+                            onFailure = {
+                                isLoading = false
+                                error = "Something went Wrong"
+                                null
+                            }
+                        )
                 }
             }
-            onComplete()
         }
     }
 }
 
-suspend fun getLetters() = getApi<List<String>>("https://random-word-api.herokuapp.com/word?length=7").orEmpty()
+suspend fun getLetters() = runCatching {
+    getApi<List<String>>("https://random-word-api.herokuapp.com/word?length=7").orEmpty()
+}
 
 suspend fun getAnagram(letters: String) =
-    getApi<HttpResponse>("https://danielthepope-countdown-v1.p.rapidapi.com/solve/$letters?variance=-1") {
-        append("X-RapidAPI-Host", "danielthepope-countdown-v1.p.rapidapi.com")
-        append("X-RapidAPI-Key", "cefe1904a6msh94a1484f93d57dbp16f734jsn098d9ecefd68")
-    }?.bodyAsText().fromJson<List<Anagrams>>()
+    runCatching {
+        getApi<HttpResponse>("https://danielthepope-countdown-v1.p.rapidapi.com/solve/$letters?variance=-1") {
+            append("X-RapidAPI-Host", "danielthepope-countdown-v1.p.rapidapi.com")
+            append("X-RapidAPI-Key", "cefe1904a6msh94a1484f93d57dbp16f734jsn098d9ecefd68")
+        }?.bodyAsText().fromJson<List<Anagrams>>()
+    }
 
 suspend fun getWordDefinition(word: String) =
-    getApi<HttpResponse>("https://api.dictionaryapi.dev/api/v2/entries/en/$word")
-        ?.bodyAsText()
-        .fromJson<List<BaseDefinition>>()
-        .orEmpty()
+    runCatching {
+        getApi<HttpResponse>("https://api.dictionaryapi.dev/api/v2/entries/en/$word")
+            ?.bodyAsText()
+            .fromJson<List<BaseDefinition>>()
+            .orEmpty()
+    }
 
 suspend inline fun <reified T> getApi(
     url: String,
