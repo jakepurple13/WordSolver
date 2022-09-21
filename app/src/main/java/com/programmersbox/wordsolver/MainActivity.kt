@@ -406,7 +406,7 @@ class WordViewModel(context: Context) : ViewModel() {
     }
 
     fun shuffle() {
-        mainLetters = mainLetters.toList().shuffled().joinToString("")
+        viewModelScope.launch { savedDataHandling.updateMainLetters(mainLetters.toList().shuffled().joinToString("")) }
     }
 
     fun updateGuess(word: String) {
