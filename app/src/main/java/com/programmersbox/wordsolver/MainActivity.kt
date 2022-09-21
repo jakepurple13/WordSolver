@@ -1,6 +1,7 @@
 package com.programmersbox.wordsolver
 
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
@@ -26,12 +27,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.core.view.WindowCompat
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -45,10 +50,7 @@ import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import kotlinx.coroutines.withTimeoutOrNull
+import kotlinx.coroutines.*
 import kotlinx.serialization.json.Json
 import java.util.*
 
@@ -81,9 +83,34 @@ fun WordUi(vm: WordViewModel = viewModel()) {
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
 
-    BackHandler(drawerState.isOpen) {
-        scope.launch { drawerState.close() }
+    var goingBack by remember { mutableStateOf(true) }
+    val context = LocalContext.current
+
+    BackHandler(goingBack) {
+        if (drawerState.isOpen) {
+            scope.launch { drawerState.close() }
+        } else {
+            goingBack = false
+            Toast.makeText(context, "Go back again to exit", Toast.LENGTH_SHORT).show()
+        }
     }
+
+    LaunchedEffect(!goingBack) {
+        if (!goingBack) {
+            delay(5000)
+            goingBack = true
+        }
+    }
+
+    LifecycleHandle(
+        onDestroy = { goingBack = true },
+        onStop = { goingBack = true },
+        onCreate = { goingBack = true },
+        onResume = { goingBack = true },
+        onPause = { goingBack = true },
+        onStart = { goingBack = true },
+        onAny = { goingBack = true }
+    )
 
     if (vm.shouldStartNewGame) {
         AlertDialog(
@@ -512,5 +539,42 @@ fun LoadingDialog(
                 }
             }
         }
+    }
+}
+
+@Composable
+fun LifecycleHandle(
+    onCreate: () -> Unit = {},
+    onStart: () -> Unit = {},
+    onResume: () -> Unit = {},
+    onPause: () -> Unit = {},
+    onStop: () -> Unit = {},
+    onDestroy: () -> Unit = {},
+    onAny: () -> Unit = {},
+    vararg keys: Any
+) {
+    val lifecycleOwner = LocalLifecycleOwner.current
+
+    // If `lifecycleOwner` changes, dispose and reset the effect
+    DisposableEffect(lifecycleOwner, *keys) {
+        // Create an observer that triggers our remembered callbacks
+        // for sending analytics events
+        val observer = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_CREATE -> onCreate
+                Lifecycle.Event.ON_START -> onStart
+                Lifecycle.Event.ON_RESUME -> onResume
+                Lifecycle.Event.ON_PAUSE -> onPause
+                Lifecycle.Event.ON_STOP -> onStop
+                Lifecycle.Event.ON_DESTROY -> onDestroy
+                Lifecycle.Event.ON_ANY -> onAny
+            }()
+        }
+
+        // Add the observer to the lifecycle
+        lifecycleOwner.lifecycle.addObserver(observer)
+
+        // When the effect leaves the Composition, remove the observer
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 }
