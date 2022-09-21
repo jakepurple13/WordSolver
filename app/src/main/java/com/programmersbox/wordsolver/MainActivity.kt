@@ -364,37 +364,33 @@ class WordViewModel(context: Context) : ViewModel() {
             savedDataHandling.updateWordGuesses(emptyList())
             wordGuess = ""
             withContext(Dispatchers.IO) {
-                getLetters()
-                    .fold(
-                        onSuccess = {
-                            withContext(Dispatchers.Main) { error = null }
-                            it.firstOrNull()
-                                .orEmpty()
-                                .toList()
-                                .shuffled()
-                                .joinToString("")
-                        },
-                        onFailure = {
-                            withContext(Dispatchers.Main) { error = "Something went Wrong" }
-                            ""
-                        }
-                    )
-                    .let { savedDataHandling.updateMainLetters(it) }
+                getLetters().fold(
+                    onSuccess = {
+                        withContext(Dispatchers.Main) { error = null }
+                        it.firstOrNull()
+                            .orEmpty()
+                            .toList()
+                            .shuffled()
+                            .joinToString("")
+                    },
+                    onFailure = {
+                        withContext(Dispatchers.Main) { error = "Something went Wrong" }
+                        ""
+                    }
+                ).let { savedDataHandling.updateMainLetters(it) }
 
             }
             withContext(Dispatchers.IO) {
-                getAnagram(mainLetters)
-                    .fold(
-                        onSuccess = {
-                            withContext(Dispatchers.Main) { error = null }
-                            it.orEmpty()
-                        },
-                        onFailure = {
-                            withContext(Dispatchers.Main) { error = "Something went Wrong" }
-                            emptyList()
-                        }
-                    )
-                    .let { savedDataHandling.updateAnagrams(it) }
+                getAnagram(mainLetters).fold(
+                    onSuccess = {
+                        withContext(Dispatchers.Main) { error = null }
+                        it.orEmpty()
+                    },
+                    onFailure = {
+                        withContext(Dispatchers.Main) { error = "Something went Wrong" }
+                        emptyList()
+                    }
+                ).let { savedDataHandling.updateAnagrams(it) }
             }
             isLoading = false
         }
@@ -432,34 +428,25 @@ class WordViewModel(context: Context) : ViewModel() {
 
     fun getDefinition(word: String, onComplete: () -> Unit) {
         viewModelScope.launch {
-            definition = if (definitionMap.contains(word) && definitionMap[word] != null) {
+            if (definitionMap.contains(word) && definitionMap[word] != null) {
                 onComplete()
-                definitionMap[word]
+                definition = definitionMap[word]
             } else {
                 isLoading = true
                 withContext(Dispatchers.IO) {
-                    withTimeoutOrNull(5000) { getWordDefinition(word) }
-                        ?.fold(
-                            onSuccess = { definition ->
-                                error = null
-                                definition.firstOrNull()
-                                    ?.also {
-                                        isLoading = false
-                                        definitionMap[word] = it
-                                        onComplete()
-                                    }
-                            },
-                            onFailure = {
-                                isLoading = false
-                                error = "Something went Wrong"
-                                null
+                    definition = withTimeoutOrNull(5000) { getWordDefinition(word) }?.fold(
+                        onSuccess = { definition ->
+                            error = null
+                            definition.firstOrNull()?.also {
+                                onComplete()
+                                definitionMap[word] = it
                             }
-                        ) ?: run {
-                        isLoading = false
-                        error = "Something went Wrong"
-                        null
-                    }
+                        },
+                        onFailure = { null }
+                    )
+                    if (definition == null) error = "Something went Wrong"
                 }
+                isLoading = false
             }
         }
     }
