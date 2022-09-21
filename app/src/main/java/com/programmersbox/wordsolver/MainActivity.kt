@@ -402,9 +402,9 @@ class WordViewModel : ViewModel() {
                 withContext(Dispatchers.IO) {
                     withTimeoutOrNull(10000) { getWordDefinition(word) }
                         ?.fold(
-                            onSuccess = {
+                            onSuccess = { definition ->
                                 error = null
-                                it.firstOrNull()
+                                definition.firstOrNull()
                                     ?.also {
                                         isLoading = false
                                         definitionMap[word] = it
