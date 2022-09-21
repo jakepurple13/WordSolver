@@ -1,5 +1,6 @@
 package com.programmersbox.wordsolver
 
+import android.content.Context
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -35,11 +36,18 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.core.view.WindowCompat
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.core.stringSetPreferencesKey
+import androidx.datastore.preferences.preferencesDataStore
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.google.gson.Gson
 import com.google.gson.GsonBuilder
 import com.google.gson.reflect.TypeToken
 import com.programmersbox.wordsolver.ui.theme.WordSolverTheme
@@ -51,6 +59,10 @@ import io.ktor.client.statement.*
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
 import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onEach
 import kotlinx.serialization.json.Json
 import java.util.*
 
@@ -72,7 +84,10 @@ class MainActivity : ComponentActivity() {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun WordUi(vm: WordViewModel = viewModel()) {
+fun WordUi(
+    context: Context = LocalContext.current,
+    vm: WordViewModel = viewModel { WordViewModel(context) }
+) {
 
     LoadingDialog(
         showLoadingDialog = vm.isLoading,
@@ -84,7 +99,6 @@ fun WordUi(vm: WordViewModel = viewModel()) {
     val snackbarHostState = remember { SnackbarHostState() }
 
     var goingBack by remember { mutableStateOf(true) }
-    val context = LocalContext.current
 
     LaunchedEffect(vm.error) {
         if (vm.error != null) {
@@ -293,7 +307,9 @@ fun WordUi(vm: WordViewModel = viewModel()) {
     }
 }
 
-class WordViewModel : ViewModel() {
+class WordViewModel(context: Context) : ViewModel() {
+
+    private val savedDataHandling = SavedDataHandling(context)
 
     var shouldStartNewGame by mutableStateOf(false)
     var finishGame by mutableStateOf(false)
@@ -318,7 +334,29 @@ class WordViewModel : ViewModel() {
     var error: String? by mutableStateOf(null)
 
     init {
-        getWord()
+        viewModelScope.launch {
+            savedDataHandling.mainLetters
+                .onEach { mainLetters = it }
+                .collect()
+        }
+        viewModelScope.launch {
+            savedDataHandling.anagrams
+                .onEach { anagrams = it }
+                .collect()
+        }
+        viewModelScope.launch {
+            savedDataHandling.wordGuesses
+                .onEach {
+                    wordGuesses.clear()
+                    wordGuesses.addAll(it)
+                }
+                .collect()
+        }
+        viewModelScope.launch {
+            if (!savedDataHandling.haveSavedData()) {
+                getWord()
+            }
+        }
     }
 
     fun getWord() {
@@ -326,9 +364,9 @@ class WordViewModel : ViewModel() {
             shouldStartNewGame = false
             isLoading = true
             definitionMap.clear()
-            wordGuesses.clear()
+            savedDataHandling.updateWordGuesses(emptyList())
             wordGuess = ""
-            mainLetters = withContext(Dispatchers.IO) {
+            withContext(Dispatchers.IO) {
                 getLetters()
                     .fold(
                         onSuccess = {
@@ -344,9 +382,10 @@ class WordViewModel : ViewModel() {
                             ""
                         }
                     )
+                    .let { savedDataHandling.updateMainLetters(it) }
 
             }
-            anagrams = withContext(Dispatchers.IO) {
+            withContext(Dispatchers.IO) {
                 getAnagram(mainLetters)
                     .fold(
                         onSuccess = {
@@ -358,6 +397,7 @@ class WordViewModel : ViewModel() {
                             emptyList()
                         }
                     )
+                    .let { savedDataHandling.updateAnagrams(it) }
             }
             isLoading = false
         }
@@ -385,6 +425,7 @@ class WordViewModel : ViewModel() {
             wordGuesses.contains(wordGuess) -> "Already Guessed"
             anagramWords.any { it.equals(wordGuess, ignoreCase = true) } -> {
                 wordGuesses += wordGuess
+                viewModelScope.launch { savedDataHandling.updateWordGuesses(wordGuesses) }
                 wordGuess = ""
                 "Got it!"
             }
@@ -466,6 +507,8 @@ suspend inline fun getApiResponse(
     noinline headers: HeadersBuilder.() -> Unit = {}
 ): HttpResponse = HttpClient().get(url) { headers(headers) }
 
+fun Any?.toJson() = Gson().toJson(this)
+
 inline fun <reified T> String?.fromJson(): T? = try {
     GsonBuilder()
         .setLenient()
@@ -532,9 +575,7 @@ fun CustomBottomAppBar(
                 end = FABHorizontalPadding
             ),
             contentAlignment = Alignment.TopStart
-        ) {
-            floatingActionButton()
-        }
+        ) { floatingActionButton() }
     }
 }
 
@@ -641,5 +682,36 @@ fun LifecycleHandle(
 
         // When the effect leaves the Composition, remove the observer
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+}
+
+class SavedDataHandling(private val context: Context) {
+    private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "settings")
+
+    companion object {
+        private val MAIN_LETTERS = stringPreferencesKey("main_word")
+        private val WORD_GUESSES = stringSetPreferencesKey("word_guesses")
+        private val ANAGRAMS = stringPreferencesKey("anagrams")
+    }
+
+    val mainLetters = context.dataStore.data.map { it[MAIN_LETTERS] ?: "" }
+    suspend fun updateMainLetters(letters: String) {
+        context.dataStore.edit { it[MAIN_LETTERS] = letters }
+    }
+
+    val wordGuesses = context.dataStore.data.map { it[WORD_GUESSES].orEmpty().toList() }
+    suspend fun updateWordGuesses(words: List<String>) {
+        context.dataStore.edit { it[WORD_GUESSES] = words.toSet() }
+    }
+
+    val anagrams = context.dataStore.data.map { it[ANAGRAMS].fromJson<List<Anagrams>>().orEmpty() }
+    suspend fun updateAnagrams(anagrams: List<Anagrams>) {
+        context.dataStore.edit { it[ANAGRAMS] = anagrams.toJson() }
+    }
+
+    suspend fun haveSavedData(): Boolean {
+        return context.dataStore.data.map {
+            it[MAIN_LETTERS] != null && it[WORD_GUESSES] != null && it[ANAGRAMS] != null
+        }.firstOrNull() ?: false
     }
 }
