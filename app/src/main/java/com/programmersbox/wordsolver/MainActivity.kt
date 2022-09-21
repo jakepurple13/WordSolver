@@ -89,9 +89,14 @@ fun WordUi(vm: WordViewModel = viewModel()) {
     LaunchedEffect(vm.error) {
         if (vm.error != null) {
             snackbarHostState.currentSnackbarData?.dismiss()
-            when (snackbarHostState.showSnackbar(vm.error!!, duration = SnackbarDuration.Long)) {
+            val result = snackbarHostState.showSnackbar(
+                vm.error!!,
+                withDismissAction = true,
+                duration = SnackbarDuration.Long
+            )
+            when (result) {
                 SnackbarResult.Dismissed -> vm.error = null
-                else -> {}
+                SnackbarResult.ActionPerformed -> vm.error = null
             }
         } else {
             snackbarHostState.currentSnackbarData?.dismiss()
@@ -242,7 +247,11 @@ fun WordUi(vm: WordViewModel = viewModel()) {
                                         scope.launch {
                                             val message = vm.guess()
                                             snackbarHostState.currentSnackbarData?.dismiss()
-                                            snackbarHostState.showSnackbar(message, duration = SnackbarDuration.Short)
+                                            snackbarHostState.showSnackbar(
+                                                message,
+                                                withDismissAction = true,
+                                                duration = SnackbarDuration.Short
+                                            )
                                         }
                                     }
                                 ) { Icon(Icons.Default.Send, null) }
