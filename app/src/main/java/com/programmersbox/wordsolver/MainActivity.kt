@@ -432,13 +432,13 @@ class WordViewModel(context: Context) : ViewModel() {
 
     fun getDefinition(word: String, onComplete: () -> Unit) {
         viewModelScope.launch {
-            definition = if (definitionMap.contains(word)) {
+            definition = if (definitionMap.contains(word) && definitionMap[word] != null) {
                 onComplete()
                 definitionMap[word]
             } else {
                 isLoading = true
                 withContext(Dispatchers.IO) {
-                    withTimeoutOrNull(10000) { getWordDefinition(word) }
+                    withTimeoutOrNull(5000) { getWordDefinition(word) }
                         ?.fold(
                             onSuccess = { definition ->
                                 error = null
@@ -454,7 +454,11 @@ class WordViewModel(context: Context) : ViewModel() {
                                 error = "Something went Wrong"
                                 null
                             }
-                        )
+                        ) ?: run {
+                        isLoading = false
+                        error = "Something went Wrong"
+                        null
+                    }
                 }
             }
         }
@@ -618,12 +622,13 @@ fun CustomBottomAppBar(
 @Composable
 fun LoadingDialog(
     showLoadingDialog: Boolean,
+    dismissOnClickOutside: Boolean = false,
     onDismissRequest: () -> Unit
 ) {
     if (showLoadingDialog) {
         Dialog(
             onDismissRequest = onDismissRequest,
-            DialogProperties(dismissOnBackPress = false, dismissOnClickOutside = false)
+            DialogProperties(dismissOnBackPress = false, dismissOnClickOutside = dismissOnClickOutside)
         ) {
             Box(
                 contentAlignment = Alignment.Center,
