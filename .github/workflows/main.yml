@@ -35,7 +35,7 @@ jobs:
 
       - name: Find aab
         run: |
-          ls app
+          ls app/release
 
       - uses: r0adkll/sign-android-release@v1
         name: Sign app APK
