@@ -323,6 +323,7 @@ class WordViewModel : ViewModel() {
                 getLetters()
                     .fold(
                         onSuccess = {
+                            withContext(Dispatchers.Main) { error = null }
                             it.firstOrNull()
                                 .orEmpty()
                                 .toList()
@@ -339,7 +340,10 @@ class WordViewModel : ViewModel() {
             anagrams = withContext(Dispatchers.IO) {
                 getAnagram(mainLetters)
                     .fold(
-                        onSuccess = { it.orEmpty() },
+                        onSuccess = {
+                            withContext(Dispatchers.Main) { error = null }
+                            it.orEmpty()
+                        },
                         onFailure = {
                             withContext(Dispatchers.Main) { error = "Something went Wrong" }
                             emptyList()
@@ -390,6 +394,7 @@ class WordViewModel : ViewModel() {
                     withTimeoutOrNull(10000) { getWordDefinition(word) }
                         ?.fold(
                             onSuccess = {
+                                error = null
                                 it.firstOrNull()
                                     ?.also {
                                         isLoading = false
