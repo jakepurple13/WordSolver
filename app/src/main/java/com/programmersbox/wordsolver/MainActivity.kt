@@ -427,21 +427,19 @@ suspend fun getLetters() = runCatching {
     getApi<List<String>>("https://random-word-api.herokuapp.com/word?length=7").orEmpty()
 }
 
-suspend fun getAnagram(letters: String) =
-    runCatching {
-        getApi<HttpResponse>("https://danielthepope-countdown-v1.p.rapidapi.com/solve/$letters?variance=-1") {
-            append("X-RapidAPI-Host", "danielthepope-countdown-v1.p.rapidapi.com")
-            append("X-RapidAPI-Key", "cefe1904a6msh94a1484f93d57dbp16f734jsn098d9ecefd68")
-        }?.bodyAsText().fromJson<List<Anagrams>>()
-    }
+suspend fun getAnagram(letters: String) = runCatching {
+    getApi<HttpResponse>("https://danielthepope-countdown-v1.p.rapidapi.com/solve/$letters?variance=-1") {
+        append("X-RapidAPI-Host", "danielthepope-countdown-v1.p.rapidapi.com")
+        append("X-RapidAPI-Key", "cefe1904a6msh94a1484f93d57dbp16f734jsn098d9ecefd68")
+    }?.bodyAsText().fromJson<List<Anagrams>>()
+}
 
-suspend fun getWordDefinition(word: String) =
-    runCatching {
-        getApi<HttpResponse>("https://api.dictionaryapi.dev/api/v2/entries/en/$word")
-            ?.bodyAsText()
-            .fromJson<List<BaseDefinition>>()
-            .orEmpty()
-    }
+suspend fun getWordDefinition(word: String) = runCatching {
+    getApiResponse("https://api.dictionaryapi.dev/api/v2/entries/en/$word")
+        .bodyAsText()
+        .fromJson<List<BaseDefinition>>()
+        .orEmpty()
+}
 
 suspend inline fun <reified T> getApi(
     url: String,
@@ -462,6 +460,11 @@ suspend inline fun <reified T> getApi(
     val response: HttpResponse = client.get(url) { headers(headers) }
     return response.body<T>()
 }
+
+suspend inline fun getApiResponse(
+    url: String,
+    noinline headers: HeadersBuilder.() -> Unit = {}
+): HttpResponse = HttpClient().get(url) { headers(headers) }
 
 inline fun <reified T> String?.fromJson(): T? = try {
     GsonBuilder()
