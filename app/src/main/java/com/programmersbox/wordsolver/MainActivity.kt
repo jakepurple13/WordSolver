@@ -325,7 +325,7 @@ class WordViewModel(context: Context) : ViewModel() {
             .filterNot { it.length < size }
     }
 
-    val wordGuesses = mutableStateListOf<String>()
+    var wordGuesses by mutableStateOf<List<String>>(emptyList())
     var wordGuess by mutableStateOf("")
 
     var definition by mutableStateOf<BaseDefinition?>(null)
@@ -346,10 +346,7 @@ class WordViewModel(context: Context) : ViewModel() {
         }
         viewModelScope.launch {
             savedDataHandling.wordGuesses
-                .onEach {
-                    wordGuesses.clear()
-                    wordGuesses.addAll(it)
-                }
+                .onEach { wordGuesses = it }
                 .collect()
         }
         viewModelScope.launch {
@@ -404,8 +401,7 @@ class WordViewModel(context: Context) : ViewModel() {
     }
 
     fun endGame() {
-        wordGuesses.clear()
-        wordGuesses.addAll(anagramWords)
+        wordGuesses = anagramWords
         finishGame = false
     }
 
@@ -424,8 +420,9 @@ class WordViewModel(context: Context) : ViewModel() {
         return when {
             wordGuesses.contains(wordGuess) -> "Already Guessed"
             anagramWords.any { it.equals(wordGuess, ignoreCase = true) } -> {
-                wordGuesses += wordGuess
-                viewModelScope.launch { savedDataHandling.updateWordGuesses(wordGuesses) }
+                val list = wordGuesses.toMutableList()
+                list.add(wordGuess)
+                viewModelScope.launch { savedDataHandling.updateWordGuesses(list) }
                 wordGuess = ""
                 "Got it!"
             }
