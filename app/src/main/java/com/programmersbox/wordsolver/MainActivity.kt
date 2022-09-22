@@ -18,10 +18,7 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Clear
-import androidx.compose.material.icons.filled.Send
-import androidx.compose.material.icons.filled.Shuffle
-import androidx.compose.material.icons.filled.Undo
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -38,10 +35,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.core.view.WindowCompat
 import androidx.datastore.core.DataStore
-import androidx.datastore.preferences.core.Preferences
-import androidx.datastore.preferences.core.edit
-import androidx.datastore.preferences.core.stringPreferencesKey
-import androidx.datastore.preferences.core.stringSetPreferencesKey
+import androidx.datastore.preferences.core.*
 import androidx.datastore.preferences.preferencesDataStore
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -112,6 +106,23 @@ fun WordUi(
             when (result) {
                 SnackbarResult.Dismissed -> vm.error = null
                 SnackbarResult.ActionPerformed -> vm.error = null
+            }
+        } else {
+            snackbarHostState.currentSnackbarData?.dismiss()
+        }
+    }
+
+    LaunchedEffect(vm.gotNewHint) {
+        if (vm.gotNewHint) {
+            snackbarHostState.currentSnackbarData?.dismiss()
+            val result = snackbarHostState.showSnackbar(
+                "Got enough words for a new hint!",
+                withDismissAction = true,
+                duration = SnackbarDuration.Short
+            )
+            vm.gotNewHint = when (result) {
+                SnackbarResult.Dismissed -> false
+                SnackbarResult.ActionPerformed -> false
             }
         } else {
             snackbarHostState.currentSnackbarData?.dismiss()
@@ -262,6 +273,11 @@ fun WordUi(
                                     modifier = Modifier.animateContentSize()
                                 ) {
                                     IconButton(onClick = vm::bringBackWord) { Icon(Icons.Default.Undo, null) }
+                                    IconButton(onClick = vm::useHint) {
+                                        BadgedBox(
+                                            badge = { Badge { Text(vm.hints.toString()) } }
+                                        ) { Icon(Icons.Default.QuestionMark, null) }
+                                    }
                                 }
                             }
                             Column {
@@ -302,12 +318,30 @@ fun WordUi(
                         if (state) {
                             OutlinedCard(
                                 onClick = { vm.getDefinition(anagrams) { scope.launch { drawerState.open() } } }
-                            ) { ListItem(headlineText = { Text(anagrams) }) }
+                            ) {
+                                ListItem(
+                                    overlineText = {},
+                                    headlineText = { Text(anagrams) }
+                                )
+                            }
                         } else {
                             ElevatedCard {
                                 ListItem(
-                                    headlineText = { Text("") },
-                                    trailingContent = { Text("${anagrams.length} letters") }
+                                    headlineText = {
+                                        Text(
+                                            anagrams
+                                                .uppercase()
+                                                .replace(
+                                                    if (vm.hintList.isNotEmpty()) {
+                                                        Regex("[^${vm.hintList.joinToString("")}]")
+                                                    } else {
+                                                        Regex("\\w")
+                                                    },
+                                                    " _"
+                                                )
+                                        )
+                                    },
+                                    overlineText = { Text("${anagrams.length} letters") }
                                 )
                             }
                         }
@@ -324,6 +358,7 @@ class WordViewModel(context: Context) : ViewModel() {
 
     var shouldStartNewGame by mutableStateOf(false)
     var finishGame by mutableStateOf(false)
+    private var usedFinishGame = false
     var isLoading by mutableStateOf(false)
 
     var mainLetters by mutableStateOf("")
@@ -345,6 +380,10 @@ class WordViewModel(context: Context) : ViewModel() {
 
     var error: String? by mutableStateOf(null)
 
+    var hints by mutableStateOf(5)
+    var hintList by mutableStateOf(emptySet<String>())
+    var gotNewHint by mutableStateOf(false)
+
     init {
         viewModelScope.launch {
             savedDataHandling.mainLetters
@@ -362,6 +401,16 @@ class WordViewModel(context: Context) : ViewModel() {
                 .collect()
         }
         viewModelScope.launch {
+            savedDataHandling.hints
+                .onEach { hints = it }
+                .collect()
+        }
+        viewModelScope.launch {
+            savedDataHandling.hintList
+                .onEach { hintList = it }
+                .collect()
+        }
+        viewModelScope.launch {
             if (!savedDataHandling.hasSavedData()) {
                 getWord()
             }
@@ -374,6 +423,13 @@ class WordViewModel(context: Context) : ViewModel() {
             isLoading = true
             definitionMap.clear()
             savedDataHandling.updateWordGuesses(emptyList())
+            savedDataHandling.updateHints(hints + 1)
+            savedDataHandling.updateHintList(emptySet())
+            if (wordGuesses.size >= anagrams.size / 2 && !usedFinishGame) { // if user finishes, this will always run
+                gotNewHint = true
+                savedDataHandling.updateHints(hints + 1)
+            }
+            usedFinishGame = false
             wordGuess = ""
             withContext(Dispatchers.IO) {
                 getLetters().fold(
@@ -390,7 +446,6 @@ class WordViewModel(context: Context) : ViewModel() {
                         ""
                     }
                 ).let { savedDataHandling.updateMainLetters(it) }
-
             }
             withContext(Dispatchers.IO) {
                 getAnagram(mainLetters).fold(
@@ -411,6 +466,7 @@ class WordViewModel(context: Context) : ViewModel() {
     fun endGame() {
         wordGuesses = anagramWords
         finishGame = false
+        usedFinishGame = true
     }
 
     fun shuffle() {
@@ -421,6 +477,22 @@ class WordViewModel(context: Context) : ViewModel() {
         //TODO: Final thing is to make sure only the letters chosen can be pressed
         if (word.toList().all { mainLetters.contains(it) }) {
             wordGuess = word
+        }
+    }
+
+    fun useHint() {
+        if (hints > 0) {
+            viewModelScope.launch { savedDataHandling.updateHints(hints - 1) }
+            mainLetters
+                .uppercase()
+                .filterNot { hintList.contains(it.toString()) }
+                .randomOrNull()
+                ?.uppercase()
+                ?.let {
+                    val list = hintList.toMutableSet()
+                    list.add(it)
+                    viewModelScope.launch { savedDataHandling.updateHintList(list) }
+                }
         }
     }
 
@@ -698,6 +770,8 @@ class SavedDataHandling(private val context: Context) {
         private val MAIN_LETTERS = stringPreferencesKey("main_word")
         private val WORD_GUESSES = stringSetPreferencesKey("word_guesses")
         private val ANAGRAMS = stringPreferencesKey("anagrams")
+        private val HINTS = intPreferencesKey("hints")
+        private val HINT_LIST = stringSetPreferencesKey("hint_list")
     }
 
     val mainLetters = context.dataStore.data.map { it[MAIN_LETTERS] ?: "" }
@@ -713,6 +787,16 @@ class SavedDataHandling(private val context: Context) {
     val anagrams = context.dataStore.data.map { it[ANAGRAMS].fromJson<List<Anagrams>>().orEmpty() }
     suspend fun updateAnagrams(anagrams: List<Anagrams>) {
         context.dataStore.edit { it[ANAGRAMS] = anagrams.toJson() }
+    }
+
+    val hints = context.dataStore.data.map { it[HINTS] ?: 4 }
+    suspend fun updateHints(hintCount: Int) {
+        context.dataStore.edit { it[HINTS] = hintCount }
+    }
+
+    val hintList = context.dataStore.data.map { it[HINT_LIST] ?: emptySet() }
+    suspend fun updateHintList(hintList: Set<String>) {
+        context.dataStore.edit { it[HINT_LIST] = hintList }
     }
 
     suspend fun hasSavedData(): Boolean {
