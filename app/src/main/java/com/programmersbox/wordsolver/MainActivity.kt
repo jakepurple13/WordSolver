@@ -425,7 +425,7 @@ class WordViewModel(context: Context) : ViewModel() {
             savedDataHandling.updateWordGuesses(emptyList())
             savedDataHandling.updateHints(hints + 1)
             savedDataHandling.updateHintList(emptySet())
-            if (wordGuesses.size >= anagrams.size / 2 && !usedFinishGame) {
+            if (wordGuesses.size >= anagramWords.size / 2 && !usedFinishGame) {
                 gotNewHint = true
                 savedDataHandling.updateHints(hints + 1)
             }
