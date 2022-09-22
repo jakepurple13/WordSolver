@@ -425,7 +425,7 @@ class WordViewModel(context: Context) : ViewModel() {
             savedDataHandling.updateWordGuesses(emptyList())
             savedDataHandling.updateHints(hints + 1)
             savedDataHandling.updateHintList(emptySet())
-            if (wordGuesses.size >= anagrams.size / 2 && !usedFinishGame) { // if user finishes, this will always run
+            if (wordGuesses.size >= anagrams.size / 2 && !usedFinishGame) {
                 gotNewHint = true
                 savedDataHandling.updateHints(hints + 1)
             }
@@ -763,8 +763,10 @@ fun LifecycleHandle(
     }
 }
 
-class SavedDataHandling(private val context: Context) {
+class SavedDataHandling(context: Context) {
     private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "settings")
+
+    private val dataStore by lazy { context.dataStore }
 
     companion object {
         private val MAIN_LETTERS = stringPreferencesKey("main_word")
@@ -774,33 +776,33 @@ class SavedDataHandling(private val context: Context) {
         private val HINT_LIST = stringSetPreferencesKey("hint_list")
     }
 
-    val mainLetters = context.dataStore.data.map { it[MAIN_LETTERS] ?: "" }
+    val mainLetters = dataStore.data.map { it[MAIN_LETTERS] ?: "" }
     suspend fun updateMainLetters(letters: String) {
-        context.dataStore.edit { it[MAIN_LETTERS] = letters }
+        dataStore.edit { it[MAIN_LETTERS] = letters }
     }
 
-    val wordGuesses = context.dataStore.data.map { it[WORD_GUESSES].orEmpty().toList() }
+    val wordGuesses = dataStore.data.map { it[WORD_GUESSES].orEmpty().toList() }
     suspend fun updateWordGuesses(words: List<String>) {
-        context.dataStore.edit { it[WORD_GUESSES] = words.toSet() }
+        dataStore.edit { it[WORD_GUESSES] = words.toSet() }
     }
 
-    val anagrams = context.dataStore.data.map { it[ANAGRAMS].fromJson<List<Anagrams>>().orEmpty() }
+    val anagrams = dataStore.data.map { it[ANAGRAMS].fromJson<List<Anagrams>>().orEmpty() }
     suspend fun updateAnagrams(anagrams: List<Anagrams>) {
-        context.dataStore.edit { it[ANAGRAMS] = anagrams.toJson() }
+        dataStore.edit { it[ANAGRAMS] = anagrams.toJson() }
     }
 
-    val hints = context.dataStore.data.map { it[HINTS] ?: 4 }
+    val hints = dataStore.data.map { it[HINTS] ?: 4 }
     suspend fun updateHints(hintCount: Int) {
-        context.dataStore.edit { it[HINTS] = hintCount }
+        dataStore.edit { it[HINTS] = hintCount }
     }
 
-    val hintList = context.dataStore.data.map { it[HINT_LIST] ?: emptySet() }
+    val hintList = dataStore.data.map { it[HINT_LIST] ?: emptySet() }
     suspend fun updateHintList(hintList: Set<String>) {
-        context.dataStore.edit { it[HINT_LIST] = hintList }
+        dataStore.edit { it[HINT_LIST] = hintList }
     }
 
     suspend fun hasSavedData(): Boolean {
-        return context.dataStore.data.map {
+        return dataStore.data.map {
             it[MAIN_LETTERS] != null && it[WORD_GUESSES] != null && it[ANAGRAMS] != null
         }.firstOrNull() ?: false
     }
