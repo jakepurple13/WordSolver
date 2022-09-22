@@ -422,13 +422,16 @@ class WordViewModel(context: Context) : ViewModel() {
             shouldStartNewGame = false
             isLoading = true
             definitionMap.clear()
+            val hintUpdates =
+                if ((wordGuesses.size >= anagramWords.size / 2 && !usedFinishGame) || wordGuesses.any { it.length == 7 }) {
+                    gotNewHint = true
+                    2
+                } else {
+                    1
+                }
+            savedDataHandling.updateHints(hints + hintUpdates)
             savedDataHandling.updateWordGuesses(emptyList())
-            savedDataHandling.updateHints(hints + 1)
             savedDataHandling.updateHintList(emptySet())
-            if (wordGuesses.size >= anagramWords.size / 2 && !usedFinishGame) {
-                gotNewHint = true
-                savedDataHandling.updateHints(hints + 1)
-            }
             usedFinishGame = false
             wordGuess = ""
             withContext(Dispatchers.IO) {
@@ -464,9 +467,9 @@ class WordViewModel(context: Context) : ViewModel() {
     }
 
     fun endGame() {
+        usedFinishGame = wordGuesses.size < anagramWords.size / 2 || wordGuesses.any { it.length == 7 }
         wordGuesses = anagramWords
         finishGame = false
-        usedFinishGame = true
     }
 
     fun shuffle() {
