@@ -467,7 +467,7 @@ class WordViewModel(context: Context) : ViewModel() {
     }
 
     fun endGame() {
-        usedFinishGame = wordGuesses.size < anagramWords.size / 2 || wordGuesses.any { it.length == 7 }
+        usedFinishGame = wordGuesses.size >= anagramWords.size / 2 || wordGuesses.any { it.length == 7 }
         wordGuesses = anagramWords
         finishGame = false
     }
