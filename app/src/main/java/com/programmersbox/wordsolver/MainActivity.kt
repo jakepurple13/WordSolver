@@ -227,7 +227,10 @@ fun WordUi(
                     title = { Text("Guess the Words") },
                     actions = {
                         Text("${vm.wordGuesses.size}/${vm.anagramWords.size}")
-                        TextButton(onClick = { vm.finishGame = true }) { Text("Finish") }
+                        TextButton(
+                            onClick = { vm.finishGame = true },
+                            enabled = !vm.finishedGame
+                        ) { Text("Finish") }
                         TextButton(onClick = { vm.shouldStartNewGame = true }) { Text("New Game") }
                     },
                     scrollBehavior = scrollBehavior
@@ -358,6 +361,7 @@ class WordViewModel(context: Context) : ViewModel() {
 
     var shouldStartNewGame by mutableStateOf(false)
     var finishGame by mutableStateOf(false)
+    var finishedGame by mutableStateOf(false)
     private var usedFinishGame = false
     var isLoading by mutableStateOf(false)
 
@@ -420,15 +424,17 @@ class WordViewModel(context: Context) : ViewModel() {
     fun getWord() {
         viewModelScope.launch {
             shouldStartNewGame = false
+            finishedGame = false
             isLoading = true
             definitionMap.clear()
-            val hintUpdates =
-                if ((wordGuesses.size >= anagramWords.size / 2 && !usedFinishGame) || wordGuesses.any { it.length == 7 }) {
-                    gotNewHint = true
-                    2
-                } else {
-                    1
-                }
+            val hintUpdates = if (
+                (wordGuesses.size >= anagramWords.size / 2 || wordGuesses.any { it.length == 7 }) && !usedFinishGame
+            ) {
+                gotNewHint = true
+                2
+            } else {
+                1
+            }
             savedDataHandling.updateHints(hints + hintUpdates)
             savedDataHandling.updateWordGuesses(emptyList())
             savedDataHandling.updateHintList(emptySet())
@@ -467,9 +473,10 @@ class WordViewModel(context: Context) : ViewModel() {
     }
 
     fun endGame() {
-        usedFinishGame = wordGuesses.size >= anagramWords.size / 2 || wordGuesses.any { it.length == 7 }
+        usedFinishGame = !(wordGuesses.size >= anagramWords.size / 2 || wordGuesses.any { it.length == 7 })
         wordGuesses = anagramWords
         finishGame = false
+        finishedGame = true
     }
 
     fun shuffle() {
