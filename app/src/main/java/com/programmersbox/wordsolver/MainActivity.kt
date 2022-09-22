@@ -234,73 +234,72 @@ fun WordUi(
                 )
             },
             bottomBar = {
-                CustomBottomAppBar(
-                    content = {
-                        Column {
-                            Row(
-                                horizontalArrangement = Arrangement.SpaceAround,
-                                modifier = Modifier.animateContentSize()
-                            ) {
-                                vm.mainLetters.forEach {
-                                    OutlinedIconButton(
-                                        onClick = { vm.updateGuess("${vm.wordGuess}$it") },
-                                        border = BorderStroke(
-                                            1.dp,
-                                            MaterialTheme.colorScheme.primary.copy(alpha = .5f)
-                                        ),
-                                    ) { Text(it.uppercase()) }
-                                }
-                            }
-
-                            Row(
-                                horizontalArrangement = Arrangement.SpaceAround,
-                                modifier = Modifier
-                                    .animateContentSize()
-                                    .height(48.dp)
-                            ) {
-                                vm.wordGuess.forEachIndexed { index, c ->
-                                    OutlinedIconButton(
-                                        onClick = { vm.updateGuess(vm.wordGuess.removeRange(index, index + 1)) },
-                                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary)
-                                    ) { Text(c.uppercase()) }
-                                }
-                            }
-
-                            Row(
-                                horizontalArrangement = Arrangement.SpaceAround,
-                                verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier.animateContentSize()
-                            ) {
-                                FilledTonalIconButton(onClick = vm::bringBackWord) { Icon(Icons.Default.Undo, null) }
-                                FilledTonalButton(
-                                    onClick = vm::useHint,
-                                    enabled = vm.hints > 0
-                                ) {
-                                    Icon(Icons.Default.QuestionMark, null)
-                                    Text(vm.hints.toString())
-                                }
+                CustomBottomAppBar {
+                    Column {
+                        Row(
+                            horizontalArrangement = Arrangement.SpaceAround,
+                            modifier = Modifier.animateContentSize()
+                        ) {
+                            vm.mainLetters.forEach {
+                                OutlinedIconButton(
+                                    onClick = { vm.updateGuess("${vm.wordGuess}$it") },
+                                    border = BorderStroke(
+                                        1.dp,
+                                        MaterialTheme.colorScheme.primary.copy(alpha = .5f)
+                                    ),
+                                ) { Text(it.uppercase()) }
                             }
                         }
-                        Column {
-                            FilledTonalIconButton(onClick = vm::shuffle) { Icon(Icons.Default.Shuffle, null) }
-                            FilledTonalIconButton(onClick = { vm.wordGuess = "" }) { Icon(Icons.Default.Clear, null) }
-                            FilledTonalIconButton(
-                                onClick = {
-                                    scope.launch {
-                                        val message = vm.guess()
-                                        snackbarHostState.currentSnackbarData?.dismiss()
-                                        snackbarHostState.showSnackbar(
-                                            message,
-                                            withDismissAction = true,
-                                            duration = SnackbarDuration.Short
-                                        )
-                                    }
-                                },
-                                enabled = vm.wordGuess.isNotEmpty()
-                            ) { Icon(Icons.Default.Send, null) }
+
+                        Row(
+                            horizontalArrangement = Arrangement.SpaceAround,
+                            modifier = Modifier
+                                .animateContentSize()
+                                .height(48.dp)
+                        ) {
+                            vm.wordGuess.forEachIndexed { index, c ->
+                                OutlinedIconButton(
+                                    onClick = { vm.updateGuess(vm.wordGuess.removeRange(index, index + 1)) },
+                                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary)
+                                ) { Text(c.uppercase()) }
+                            }
+                        }
+
+                        Row(
+                            horizontalArrangement = Arrangement.SpaceAround,
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.animateContentSize()
+                        ) {
+                            FilledTonalIconButton(onClick = vm::bringBackWord) { Icon(Icons.Default.Undo, null) }
+                            Spacer(Modifier.size(48.dp))
+                            FilledTonalButton(
+                                onClick = vm::useHint,
+                                enabled = vm.hints > 0
+                            ) {
+                                Icon(Icons.Default.QuestionMark, null)
+                                Text(vm.hints.toString())
+                            }
                         }
                     }
-                )
+                    Column {
+                        FilledTonalIconButton(onClick = vm::shuffle) { Icon(Icons.Default.Shuffle, null) }
+                        FilledTonalIconButton(onClick = { vm.wordGuess = "" }) { Icon(Icons.Default.Clear, null) }
+                        FilledTonalIconButton(
+                            onClick = {
+                                scope.launch {
+                                    val message = vm.guess()
+                                    snackbarHostState.currentSnackbarData?.dismiss()
+                                    snackbarHostState.showSnackbar(
+                                        message,
+                                        withDismissAction = true,
+                                        duration = SnackbarDuration.Short
+                                    )
+                                }
+                            },
+                            enabled = vm.wordGuess.isNotEmpty()
+                        ) { Icon(Icons.Default.Send, null) }
+                    }
+                }
             },
             snackbarHost = { SnackbarHost(snackbarHostState) },
             modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection)
@@ -628,14 +627,6 @@ fun DefaultPreview() {
         WordUi()
     }
 }
-
-// Padding minus IconButton's min touch target expansion
-private val BottomAppBarHorizontalPadding = 16.dp - 12.dp
-internal val BottomAppBarVerticalPadding = 16.dp - 12.dp
-
-// Padding minus content padding
-private val FABHorizontalPadding = 16.dp - BottomAppBarHorizontalPadding
-private val FABVerticalPadding = 12.dp - BottomAppBarVerticalPadding
 
 @Composable
 fun CustomBottomAppBar(
