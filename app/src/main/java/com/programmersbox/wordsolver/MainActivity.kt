@@ -358,15 +358,18 @@ fun SettingsDrawer(vm: SettingsViewModel, drawerState: DrawerState) {
             ) {
                 item {
                     NavigationDrawerItem(
-                        label = { Text("Column Count") },
-                        selected = false,
+                        label = {
+                            ListItem(
+                                headlineText = { Text("Column Count") },
+                                supportingText = { Text("Choose between having 2 or 3 columns.") },
+                                colors = ListItemDefaults.colors(
+                                    containerColor = Color.Transparent
+                                )
+                            )
+                        },
+                        selected = true,
                         onClick = { vm.updateColumnCount(if (vm.columnCount == 2) 3 else 2) },
                         badge = { Text(vm.columnCount.toString()) },
-                    )
-                    Text(
-                        "Choose between having 2 or 3 columns.",
-                        modifier = Modifier.padding(start = 16.dp),
-                        style = MaterialTheme.typography.bodySmall
                     )
                 }
 
@@ -374,15 +377,22 @@ fun SettingsDrawer(vm: SettingsViewModel, drawerState: DrawerState) {
 
                 item {
                     NavigationDrawerItem(
-                        label = { Text("Scroll to Item on Already Guessed") },
-                        selected = false,
+                        label = {
+                            ListItem(
+                                headlineText = { Text("Scroll to Item on Already Guessed") },
+                                supportingText = {
+                                    Text("Enable if you want to be scrolled to where in the grid the already guessed word is.")
+                                },
+                                colors = ListItemDefaults.colors(
+                                    containerColor = Color.Transparent
+                                )
+                            )
+                        },
+                        selected = true,
                         onClick = { vm.updateScrollToItem(!vm.scrollToItem) },
                         badge = { Switch(checked = vm.scrollToItem, onCheckedChange = { vm.updateScrollToItem(it) }) },
-                    )
-                    Text(
-                        "Enable if you want to be scrolled to where in the grid the already guessed word is.",
-                        modifier = Modifier.padding(start = 16.dp),
-                        style = MaterialTheme.typography.bodySmall
+                        modifier = Modifier.height(150.dp),
+                        shape = RoundedCornerShape(25)
                     )
                 }
             }
