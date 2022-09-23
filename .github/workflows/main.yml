@@ -8,10 +8,11 @@ on:
      - '.github/**'
      
   workflow_dispatch:
-    releaseToGooglePlay:
-      description: 'Release to Google Play?'
-      required: true
-      default: 'true'
+    inputs:
+      releaseToGooglePlay:
+        description: 'Release to Google Play?'
+        required: true
+        default: 'true'
 jobs:
   apk:
     name: Generate APK
