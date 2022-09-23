@@ -12,7 +12,7 @@ on:
       releaseToGooglePlay:
         description: 'Release to Google Play?'
         required: true
-        default: 'true'
+        default: 'false'
 jobs:
   apk:
     name: Generate APK
