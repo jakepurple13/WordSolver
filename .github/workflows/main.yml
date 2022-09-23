@@ -103,5 +103,5 @@ jobs:
           packageName: com.programmersbox.wordsolver
           releaseFiles: anagramer-release.aab
           track: production
-          status: completed
+          status: inProgress
           userFraction: 0.99
