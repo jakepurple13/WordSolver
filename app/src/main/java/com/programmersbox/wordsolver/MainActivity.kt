@@ -375,25 +375,30 @@ fun SettingsDrawer(vm: SettingsViewModel, drawerState: DrawerState) {
 
                 item { Divider() }
 
-                item {
-                    NavigationDrawerItem(
-                        label = {
-                            ListItem(
-                                headlineText = { Text("Scroll to Item on Already Guessed") },
-                                supportingText = {
-                                    Text("Enable if you want to be scrolled to where in the grid the already guessed word is.")
-                                },
-                                colors = ListItemDefaults.colors(
-                                    containerColor = Color.Transparent
+                if (BuildConfig.DEBUG) {
+                    item {
+                        NavigationDrawerItem(
+                            label = {
+                                ListItem(
+                                    headlineText = { Text("Scroll to Item on Already Guessed") },
+                                    supportingText = {
+                                        Text("Enable if you want to be scrolled to where in the grid the already guessed word is.")
+                                    },
+                                    colors = ListItemDefaults.colors(containerColor = Color.Transparent)
                                 )
-                            )
-                        },
-                        selected = true,
-                        onClick = { vm.updateScrollToItem(!vm.scrollToItem) },
-                        badge = { Switch(checked = vm.scrollToItem, onCheckedChange = { vm.updateScrollToItem(it) }) },
-                        modifier = Modifier.height(150.dp),
-                        shape = RoundedCornerShape(25)
-                    )
+                            },
+                            selected = true,
+                            onClick = { vm.updateScrollToItem(!vm.scrollToItem) },
+                            badge = {
+                                Switch(
+                                    checked = vm.scrollToItem,
+                                    onCheckedChange = { vm.updateScrollToItem(it) }
+                                )
+                            },
+                            modifier = Modifier.height(150.dp),
+                            shape = RoundedCornerShape(25)
+                        )
+                    }
                 }
             }
         }

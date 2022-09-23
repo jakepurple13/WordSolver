@@ -222,7 +222,7 @@ class SettingsViewModel(context: Context) : ViewModel() {
 
     private val settingsHandling = SettingsHandling(context)
 
-    var scrollToItem by mutableStateOf(true)
+    var scrollToItem by mutableStateOf(false)
     var columnCount by mutableStateOf(3)
 
     init {
@@ -302,7 +302,7 @@ class SettingsHandling(context: Context) {
         private val COLUMN_AMOUNT = intPreferencesKey("column_amount")
     }
 
-    val scrollToItem = dataStore.data.map { it[SCROLL_TO_ITEM_ON_ALREADY_GUESSED] ?: true }
+    val scrollToItem = dataStore.data.map { it[SCROLL_TO_ITEM_ON_ALREADY_GUESSED] ?: false }
     suspend fun updateItemScroll(scroll: Boolean) {
         dataStore.edit { it[SCROLL_TO_ITEM_ON_ALREADY_GUESSED] = scroll }
     }
