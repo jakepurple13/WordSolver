@@ -100,4 +100,4 @@ jobs:
           releaseFiles: anagramer-release.aab
           track: production
           status: completed
-          userFraction: 1
+          userFraction: 1.0
