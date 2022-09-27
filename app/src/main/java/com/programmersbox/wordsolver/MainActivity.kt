@@ -24,6 +24,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
@@ -192,16 +193,17 @@ fun WordUi(
                     Column(
                         modifier = Modifier.padding(padding)
                     ) {
-                        Row(
-                            horizontalArrangement = Arrangement.SpaceBetween,
+                        Box(
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             FilledTonalButton(
                                 onClick = vm::useHint,
                                 enabled = vm.hints > 0,
-                                modifier = Modifier.introShowCaseTarget(4, style = introShowCaseStyle()) {
-                                    Text("Use a hint")
-                                }
+                                modifier = Modifier
+                                    .align(Alignment.CenterStart)
+                                    .introShowCaseTarget(4, style = introShowCaseStyle()) {
+                                        Text("Use a hint")
+                                    }
                             ) {
                                 Icon(Icons.Default.QuestionMark, null)
                                 Text(vm.hints.toString())
@@ -210,13 +212,16 @@ fun WordUi(
                             FilledTonalButton(
                                 onClick = { vm.showScoreInfo = true },
                                 enabled = vm.score > 0,
-                                modifier = Modifier.introShowCaseTarget(5, style = introShowCaseStyle()) {
-                                    Text("Click here to see your points breakdown")
-                                }
+                                modifier = Modifier
+                                    .align(Alignment.Center)
+                                    .introShowCaseTarget(5, style = introShowCaseStyle()) {
+                                        Text("Click here to see your points breakdown")
+                                    }
                             ) { Text("${animateIntAsState(vm.score).value} points") }
 
                             FilledTonalIconButton(
-                                onClick = { scope.launch { settingsDrawerState.open() } }
+                                onClick = { scope.launch { settingsDrawerState.open() } },
+                                modifier = Modifier.align(Alignment.CenterEnd)
                             ) { Icon(Icons.Default.Settings, null) }
                         }
                         LazyVerticalGrid(
