@@ -52,6 +52,17 @@ class WordViewModel(context: Context) : ViewModel() {
     var hintList by mutableStateOf(emptySet<String>())
     var gotNewHint by mutableStateOf(false)
 
+    var showScoreInfo by mutableStateOf(false)
+    val score by derivedStateOf {
+        wordGuesses
+            .groupBy { it.length }
+            .map { it.key * it.value.size }
+            .ifEmpty { listOf(0) }
+            .reduce { acc, i -> acc + i }
+    }
+
+    val scoreInfo by derivedStateOf { wordGuesses.groupBy { it.length } }
+
     init {
         viewModelScope.launch {
             savedDataHandling.mainLetters
@@ -141,6 +152,10 @@ class WordViewModel(context: Context) : ViewModel() {
         wordGuesses = anagramWords
         finishGame = false
         finishedGame = true
+    }
+
+    fun cheatGame() {
+        wordGuesses = anagramWords
     }
 
     fun shuffle() {

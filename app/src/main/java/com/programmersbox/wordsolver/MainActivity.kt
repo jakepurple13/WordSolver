@@ -8,6 +8,7 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.animateIntAsState
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -39,6 +40,7 @@ import com.programmersbox.wordsolver.ui.theme.WordSolverTheme
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.util.*
+import kotlin.math.roundToInt
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -139,28 +141,10 @@ fun WordUi(
         onAny = { goingBack = true }
     )
 
-    if (vm.shouldStartNewGame) {
-        AlertDialog(
-            onDismissRequest = { vm.shouldStartNewGame = false },
-            title = { Text("New Game?") },
-            text = { Text("Are you sure? You will lose all your progress.") },
-            confirmButton = { TextButton(onClick = vm::getWord) { Text("Yes") } },
-            dismissButton = { TextButton(onClick = { vm.shouldStartNewGame = false }) { Text("No") } }
-        )
-    }
-
-    if (vm.finishGame) {
-        AlertDialog(
-            onDismissRequest = { vm.finishGame = false },
-            title = { Text("Finish Game?") },
-            text = { Text("Are you sure? You will lose all your progress.") },
-            confirmButton = { TextButton(onClick = vm::endGame) { Text("Yes") } },
-            dismissButton = { TextButton(onClick = { vm.finishGame = false }) { Text("No") } }
-        )
-    }
+    WordDialogs(vm)
 
     ModalNavigationDrawer(
-        drawerContent = { SettingsDrawer(vm = settingsVm, drawerState = settingsDrawerState) },
+        drawerContent = { SettingsDrawer(vm = settingsVm, wordViewModel = vm, drawerState = settingsDrawerState) },
         drawerState = settingsDrawerState,
         gesturesEnabled = settingsDrawerState.isOpen
     ) {
@@ -190,53 +174,76 @@ fun WordUi(
                         vm = vm,
                         settingsVm = settingsVm,
                         gridState = gridState,
-                        settingsDrawerState = settingsDrawerState,
                         snackbarHostState = snackbarHostState
                     )
                 },
                 snackbarHost = { SnackbarHost(snackbarHostState) },
                 modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection)
             ) { padding ->
-                LazyVerticalGrid(
-                    state = gridState,
-                    columns = GridCells.Fixed(settingsVm.columnCount),
-                    verticalArrangement = Arrangement.spacedBy(2.dp),
-                    horizontalArrangement = Arrangement.spacedBy(2.dp),
-                    contentPadding = padding,
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(vertical = 2.dp)
+                Column(
+                    modifier = Modifier.padding(padding)
                 ) {
-                    items(vm.anagramWords.sortedByDescending { it.length }) { anagrams ->
-                        Crossfade(targetState = vm.wordGuesses.any { it.equals(anagrams, true) }) { state ->
-                            if (state) {
-                                OutlinedCard(
-                                    onClick = { vm.getDefinition(anagrams) { scope.launch { drawerState.open() } } }
-                                ) {
-                                    ListItem(
-                                        overlineText = {},
-                                        headlineText = { Text(anagrams) }
-                                    )
-                                }
-                            } else {
-                                ElevatedCard {
-                                    ListItem(
-                                        headlineText = {
-                                            Text(
-                                                anagrams
-                                                    .uppercase()
-                                                    .replace(
-                                                        if (vm.hintList.isNotEmpty()) {
-                                                            Regex("[^${vm.hintList.joinToString("")}]")
-                                                        } else {
-                                                            Regex("\\w")
-                                                        },
-                                                        " _"
-                                                    )
-                                            )
-                                        },
-                                        overlineText = { Text("${anagrams.length} letters") }
-                                    )
+                    Row(
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        FilledTonalButton(
+                            onClick = vm::useHint,
+                            enabled = vm.hints > 0
+                        ) {
+                            Icon(Icons.Default.QuestionMark, null)
+                            Text(vm.hints.toString())
+                        }
+
+                        FilledTonalButton(
+                            onClick = { vm.showScoreInfo = true },
+                            enabled = vm.score > 0
+                        ) { Text("${animateIntAsState(vm.score).value} points") }
+
+                        FilledTonalIconButton(
+                            onClick = { scope.launch { settingsDrawerState.open() } }
+                        ) { Icon(Icons.Default.Settings, null) }
+                    }
+                    LazyVerticalGrid(
+                        state = gridState,
+                        columns = GridCells.Fixed(settingsVm.columnCount),
+                        verticalArrangement = Arrangement.spacedBy(2.dp),
+                        horizontalArrangement = Arrangement.spacedBy(2.dp),
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(vertical = 2.dp)
+                    ) {
+                        items(vm.anagramWords.sortedByDescending { it.length }) { anagrams ->
+                            Crossfade(targetState = vm.wordGuesses.any { it.equals(anagrams, true) }) { state ->
+                                if (state) {
+                                    OutlinedCard(
+                                        onClick = { vm.getDefinition(anagrams) { scope.launch { drawerState.open() } } }
+                                    ) {
+                                        ListItem(
+                                            overlineText = {},
+                                            headlineText = { Text(anagrams) }
+                                        )
+                                    }
+                                } else {
+                                    ElevatedCard {
+                                        ListItem(
+                                            headlineText = {
+                                                Text(
+                                                    anagrams
+                                                        .uppercase()
+                                                        .replace(
+                                                            if (vm.hintList.isNotEmpty()) {
+                                                                Regex("[^${vm.hintList.joinToString("")}]")
+                                                            } else {
+                                                                Regex("\\w")
+                                                            },
+                                                            " _"
+                                                        )
+                                                )
+                                            },
+                                            overlineText = { Text("${anagrams.length} letters") }
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -247,13 +254,11 @@ fun WordUi(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BottomBar(
     vm: WordViewModel,
     settingsVm: SettingsViewModel,
     gridState: LazyGridState,
-    settingsDrawerState: DrawerState,
     snackbarHostState: SnackbarHostState
 ) {
     val scope = rememberCoroutineScope()
@@ -294,18 +299,6 @@ fun BottomBar(
                 modifier = Modifier.animateContentSize()
             ) {
                 FilledTonalIconButton(onClick = vm::bringBackWord) { Icon(Icons.Default.Undo, null) }
-                Spacer(Modifier.size(48.dp))
-                FilledTonalButton(
-                    onClick = vm::useHint,
-                    enabled = vm.hints > 0
-                ) {
-                    Icon(Icons.Default.QuestionMark, null)
-                    Text(vm.hints.toString())
-                }
-                Spacer(Modifier.size(48.dp))
-                FilledTonalIconButton(
-                    onClick = { scope.launch { settingsDrawerState.open() } }
-                ) { Icon(Icons.Default.Settings, null) }
             }
         }
         Column {
@@ -333,7 +326,7 @@ fun BottomBar(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SettingsDrawer(vm: SettingsViewModel, drawerState: DrawerState) {
+fun SettingsDrawer(vm: SettingsViewModel, wordViewModel: WordViewModel, drawerState: DrawerState) {
     val scope = rememberCoroutineScope()
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
     ModalDrawerSheet {
@@ -361,15 +354,22 @@ fun SettingsDrawer(vm: SettingsViewModel, drawerState: DrawerState) {
                         label = {
                             ListItem(
                                 headlineText = { Text("Column Count") },
-                                supportingText = { Text("Choose between having 2 or 3 columns.") },
-                                colors = ListItemDefaults.colors(
-                                    containerColor = Color.Transparent
-                                )
+                                supportingText = { Text("Choose how many columns there are. Click here to reset to default (3).") },
+                                colors = ListItemDefaults.colors(containerColor = Color.Transparent)
                             )
                         },
                         selected = true,
-                        onClick = { vm.updateColumnCount(if (vm.columnCount == 2) 3 else 2) },
+                        onClick = { vm.updateColumnCount(3) },
                         badge = { Text(vm.columnCount.toString()) },
+                    )
+
+                    var columnCount by remember(vm.columnCount) { mutableStateOf(vm.columnCount.toFloat()) }
+
+                    Slider(
+                        value = columnCount,
+                        onValueChange = { columnCount = it },
+                        onValueChangeFinished = { vm.updateColumnCount(columnCount.roundToInt()) },
+                        valueRange = 2f..5f
                     )
                 }
 
@@ -397,6 +397,22 @@ fun SettingsDrawer(vm: SettingsViewModel, drawerState: DrawerState) {
                             },
                             modifier = Modifier.height(150.dp),
                             shape = RoundedCornerShape(25)
+                        )
+                    }
+                }
+
+                if (BuildConfig.DEBUG) {
+                    item {
+                        NavigationDrawerItem(
+                            label = {
+                                ListItem(
+                                    headlineText = { Text("Win Game") },
+                                    overlineText = { Text("Cheat") },
+                                    colors = ListItemDefaults.colors(containerColor = Color.Transparent)
+                                )
+                            },
+                            selected = true,
+                            onClick = wordViewModel::cheatGame
                         )
                     }
                 }
@@ -516,6 +532,47 @@ fun LoadingDialog(
                 }
             }
         }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun WordDialogs(vm: WordViewModel) {
+    val isFinished by remember { derivedStateOf { vm.wordGuesses.size == vm.anagramWords.size } }
+
+    if (vm.shouldStartNewGame) {
+        AlertDialog(
+            onDismissRequest = { vm.shouldStartNewGame = false },
+            title = { Text("New Game?") },
+            text = { Text("Are you sure?${if (!isFinished) " You will lose all your progress." else ""}") },
+            confirmButton = { TextButton(onClick = vm::getWord) { Text("Yes") } },
+            dismissButton = { TextButton(onClick = { vm.shouldStartNewGame = false }) { Text("No") } }
+        )
+    }
+
+    if (vm.finishGame) {
+        AlertDialog(
+            onDismissRequest = { vm.finishGame = false },
+            title = { Text("Finish Game?") },
+            text = { Text("Are you sure?${if (!isFinished) " You will lose all your progress." else ""}") },
+            confirmButton = { TextButton(onClick = vm::endGame) { Text("Yes") } },
+            dismissButton = { TextButton(onClick = { vm.finishGame = false }) { Text("No") } }
+        )
+    }
+
+    if (vm.showScoreInfo) {
+        AlertDialog(
+            onDismissRequest = { vm.showScoreInfo = false },
+            title = { Text("Score Info") },
+            text = {
+                LazyColumn {
+                    items(vm.scoreInfo.entries.toList()) {
+                        ListItem(headlineText = { Text("${it.key} = ${it.value.size * it.key} points") })
+                    }
+                }
+            },
+            confirmButton = { TextButton(onClick = { vm.showScoreInfo = false }) { Text("Done") } },
+        )
     }
 }
 
