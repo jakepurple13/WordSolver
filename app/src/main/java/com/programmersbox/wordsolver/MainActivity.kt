@@ -237,17 +237,24 @@ fun WordUi(
                                 Crossfade(targetState = vm.wordGuesses.any { it.equals(anagrams, true) }) { state ->
                                     if (state) {
                                         OutlinedCard(
-                                            onClick = { vm.getDefinition(anagrams) { scope.launch { drawerState.open() } } }
+                                            onClick = { vm.getDefinition(anagrams) { scope.launch { drawerState.open() } } },
                                         ) {
-                                            ListItem(
-                                                trailingContent = {},
-                                                headlineText = { Text(anagrams) }
-                                            )
+                                            CustomListItem {
+                                                Box(
+                                                    Modifier
+                                                        .weight(1f)
+                                                        .align(Alignment.CenterVertically)
+                                                ) { Text(anagrams, style = MaterialTheme.typography.bodyMedium) }
+                                            }
                                         }
                                     } else {
-                                        ElevatedCard {
-                                            ListItem(
-                                                headlineText = {
+                                        ElevatedCard(onClick = {}, enabled = false) {
+                                            CustomListItem {
+                                                Box(
+                                                    Modifier
+                                                        .weight(1f)
+                                                        .align(Alignment.CenterVertically)
+                                                ) {
                                                     Text(
                                                         anagrams
                                                             .uppercase()
@@ -258,11 +265,16 @@ fun WordUi(
                                                                     Regex("\\w")
                                                                 },
                                                                 " _"
-                                                            )
+                                                            ),
+                                                        style = MaterialTheme.typography.bodyMedium
                                                     )
-                                                },
-                                                trailingContent = { Text("${anagrams.length}") }
-                                            )
+                                                }
+                                                Spacer(Modifier.width(4.dp))
+                                                Text(
+                                                    "${anagrams.length}",
+                                                    style = MaterialTheme.typography.bodyMedium
+                                                )
+                                            }
                                         }
                                     }
                                 }
@@ -683,5 +695,34 @@ fun LifecycleHandle(
 
         // When the effect leaves the Composition, remove the observer
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+}
+
+@Composable
+@ExperimentalMaterial3Api
+private fun CustomListItem(
+    modifier: Modifier = Modifier,
+    shape: Shape = ListItemDefaults.shape,
+    containerColor: Color = ListItemDefaults.containerColor,
+    contentColor: Color = ListItemDefaults.contentColor,
+    tonalElevation: Dp = ListItemDefaults.Elevation,
+    shadowElevation: Dp = ListItemDefaults.Elevation,
+    content: @Composable RowScope.() -> Unit,
+) {
+    Surface(
+        modifier = modifier,
+        shape = shape,
+        color = containerColor,
+        contentColor = contentColor,
+        tonalElevation = tonalElevation,
+        shadowElevation = shadowElevation,
+    ) {
+        Row(
+            modifier = Modifier
+                .heightIn(min = 8.dp)
+                .padding(PaddingValues(vertical = 16.dp, horizontal = 16.dp)),
+            verticalAlignment = Alignment.CenterVertically,
+            content = content
+        )
     }
 }
