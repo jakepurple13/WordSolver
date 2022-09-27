@@ -237,6 +237,8 @@ class SettingsViewModel(context: Context) : ViewModel() {
 
     private val settingsHandling = SettingsHandling(context)
 
+    val showcase by lazy { settingsHandling.showShowcase }
+
     var scrollToItem by mutableStateOf(false)
     var columnCount by mutableStateOf(3)
 
@@ -259,6 +261,14 @@ class SettingsViewModel(context: Context) : ViewModel() {
 
     fun updateColumnCount(count: Int) {
         viewModelScope.launch { settingsHandling.updateColumnAmount(count) }
+    }
+
+    fun finishShowcase() {
+        viewModelScope.launch { settingsHandling.updateShowcase(false) }
+    }
+
+    fun showShowcase() {
+        viewModelScope.launch { settingsHandling.updateShowcase(true) }
     }
 }
 
@@ -315,6 +325,7 @@ class SettingsHandling(context: Context) {
     companion object {
         private val SCROLL_TO_ITEM_ON_ALREADY_GUESSED = booleanPreferencesKey("scroll_to_item_on_already_guessed")
         private val COLUMN_AMOUNT = intPreferencesKey("column_amount")
+        private val SHOW_SHOWCASE = booleanPreferencesKey("show_showcase")
     }
 
     val scrollToItem = dataStore.data.map { it[SCROLL_TO_ITEM_ON_ALREADY_GUESSED] ?: false }
@@ -325,5 +336,10 @@ class SettingsHandling(context: Context) {
     val columnAmount = dataStore.data.map { it[COLUMN_AMOUNT] ?: 3 }
     suspend fun updateColumnAmount(columnCount: Int) {
         dataStore.edit { it[COLUMN_AMOUNT] = columnCount }
+    }
+
+    val showShowcase = dataStore.data.map { it[SHOW_SHOWCASE] ?: true }
+    suspend fun updateShowcase(showShowcase: Boolean) {
+        dataStore.edit { it[SHOW_SHOWCASE] = showShowcase }
     }
 }

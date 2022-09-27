@@ -11,6 +11,7 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.ViewCompat
+import com.canopas.lib.showcase.ShowcaseStyle
 
 private val DarkColorScheme = darkColorScheme(
     primary = Purple80,
@@ -63,3 +64,10 @@ fun WordSolverTheme(
         content = content
     )
 }
+
+@Composable
+fun introShowCaseStyle() = ShowcaseStyle.Default.copy(
+    backgroundColor = MaterialTheme.colorScheme.background,
+    targetCircleColor = Color.White,
+    backgroundAlpha = 0.98f
+)

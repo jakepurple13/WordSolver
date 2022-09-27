@@ -36,7 +36,12 @@ import androidx.core.view.WindowCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.canopas.lib.showcase.IntroShowCaseScaffold
+import com.canopas.lib.showcase.IntroShowCaseScope
+import com.programmersbox.wordsolver.ui.theme.Alizarin
+import com.programmersbox.wordsolver.ui.theme.Emerald
 import com.programmersbox.wordsolver.ui.theme.WordSolverTheme
+import com.programmersbox.wordsolver.ui.theme.introShowCaseStyle
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.util.*
@@ -153,96 +158,107 @@ fun WordUi(
             drawerState = drawerState,
             gesturesEnabled = vm.definition != null
         ) {
-            val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
-            Scaffold(
-                topBar = {
-                    TopAppBar(
-                        title = { Text("Guess the Words") },
-                        actions = {
-                            Text("${vm.wordGuesses.size}/${vm.anagramWords.size}")
-                            TextButton(
-                                onClick = { vm.finishGame = true },
-                                enabled = !vm.finishedGame
-                            ) { Text("Finish") }
-                            TextButton(onClick = { vm.shouldStartNewGame = true }) { Text("New Game") }
-                        },
-                        scrollBehavior = scrollBehavior
-                    )
-                },
-                bottomBar = {
-                    BottomBar(
-                        vm = vm,
-                        settingsVm = settingsVm,
-                        gridState = gridState,
-                        snackbarHostState = snackbarHostState
-                    )
-                },
-                snackbarHost = { SnackbarHost(snackbarHostState) },
-                modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection)
-            ) { padding ->
-                Column(
-                    modifier = Modifier.padding(padding)
-                ) {
-                    Row(
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        modifier = Modifier.fillMaxWidth()
+            IntroShowCaseScaffold(
+                showIntroShowCase = settingsVm.showcase.collectAsState(initial = false).value,
+                onShowCaseCompleted = { settingsVm.finishShowcase() },
+            ) {
+                val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
+                Scaffold(
+                    topBar = {
+                        TopAppBar(
+                            title = { Text("Guess the Words") },
+                            actions = {
+                                Text("${vm.wordGuesses.size}/${vm.anagramWords.size}")
+                                TextButton(
+                                    onClick = { vm.finishGame = true },
+                                    enabled = !vm.finishedGame
+                                ) { Text("Finish") }
+                                TextButton(onClick = { vm.shouldStartNewGame = true }) { Text("New Game") }
+                            },
+                            scrollBehavior = scrollBehavior
+                        )
+                    },
+                    bottomBar = {
+                        BottomBar(
+                            vm = vm,
+                            settingsVm = settingsVm,
+                            gridState = gridState,
+                            snackbarHostState = snackbarHostState
+                        )
+                    },
+                    snackbarHost = { SnackbarHost(snackbarHostState) },
+                    modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection)
+                ) { padding ->
+                    Column(
+                        modifier = Modifier.padding(padding)
                     ) {
-                        FilledTonalButton(
-                            onClick = vm::useHint,
-                            enabled = vm.hints > 0
+                        Row(
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            modifier = Modifier.fillMaxWidth()
                         ) {
-                            Icon(Icons.Default.QuestionMark, null)
-                            Text(vm.hints.toString())
+                            FilledTonalButton(
+                                onClick = vm::useHint,
+                                enabled = vm.hints > 0,
+                                modifier = Modifier.introShowCaseTarget(4, style = introShowCaseStyle()) {
+                                    Text("Use a hint")
+                                }
+                            ) {
+                                Icon(Icons.Default.QuestionMark, null)
+                                Text(vm.hints.toString())
+                            }
+
+                            FilledTonalButton(
+                                onClick = { vm.showScoreInfo = true },
+                                enabled = vm.score > 0,
+                                modifier = Modifier.introShowCaseTarget(5, style = introShowCaseStyle()) {
+                                    Text("Click here to see your points breakdown")
+                                }
+                            ) { Text("${animateIntAsState(vm.score).value} points") }
+
+                            FilledTonalIconButton(
+                                onClick = { scope.launch { settingsDrawerState.open() } }
+                            ) { Icon(Icons.Default.Settings, null) }
                         }
-
-                        FilledTonalButton(
-                            onClick = { vm.showScoreInfo = true },
-                            enabled = vm.score > 0
-                        ) { Text("${animateIntAsState(vm.score).value} points") }
-
-                        FilledTonalIconButton(
-                            onClick = { scope.launch { settingsDrawerState.open() } }
-                        ) { Icon(Icons.Default.Settings, null) }
-                    }
-                    LazyVerticalGrid(
-                        state = gridState,
-                        columns = GridCells.Fixed(settingsVm.columnCount),
-                        verticalArrangement = Arrangement.spacedBy(2.dp),
-                        horizontalArrangement = Arrangement.spacedBy(2.dp),
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(vertical = 2.dp)
-                    ) {
-                        items(vm.anagramWords.sortedByDescending { it.length }) { anagrams ->
-                            Crossfade(targetState = vm.wordGuesses.any { it.equals(anagrams, true) }) { state ->
-                                if (state) {
-                                    OutlinedCard(
-                                        onClick = { vm.getDefinition(anagrams) { scope.launch { drawerState.open() } } }
-                                    ) {
-                                        ListItem(
-                                            overlineText = {},
-                                            headlineText = { Text(anagrams) }
-                                        )
-                                    }
-                                } else {
-                                    ElevatedCard {
-                                        ListItem(
-                                            headlineText = {
-                                                Text(
-                                                    anagrams
-                                                        .uppercase()
-                                                        .replace(
-                                                            if (vm.hintList.isNotEmpty()) {
-                                                                Regex("[^${vm.hintList.joinToString("")}]")
-                                                            } else {
-                                                                Regex("\\w")
-                                                            },
-                                                            " _"
-                                                        )
-                                                )
-                                            },
-                                            overlineText = { Text("${anagrams.length} letters") }
-                                        )
+                        LazyVerticalGrid(
+                            state = gridState,
+                            columns = GridCells.Fixed(settingsVm.columnCount),
+                            verticalArrangement = Arrangement.spacedBy(2.dp),
+                            horizontalArrangement = Arrangement.spacedBy(2.dp),
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(vertical = 2.dp)
+                        ) {
+                            items(vm.anagramWords.sortedByDescending { it.length }) { anagrams ->
+                                Crossfade(targetState = vm.wordGuesses.any { it.equals(anagrams, true) }) { state ->
+                                    if (state) {
+                                        OutlinedCard(
+                                            onClick = { vm.getDefinition(anagrams) { scope.launch { drawerState.open() } } }
+                                        ) {
+                                            ListItem(
+                                                trailingContent = {},
+                                                headlineText = { Text(anagrams) }
+                                            )
+                                        }
+                                    } else {
+                                        ElevatedCard {
+                                            ListItem(
+                                                headlineText = {
+                                                    Text(
+                                                        anagrams
+                                                            .uppercase()
+                                                            .replace(
+                                                                if (vm.hintList.isNotEmpty()) {
+                                                                    Regex("[^${vm.hintList.joinToString("")}]")
+                                                                } else {
+                                                                    Regex("\\w")
+                                                                },
+                                                                " _"
+                                                            )
+                                                    )
+                                                },
+                                                trailingContent = { Text("${anagrams.length}") }
+                                            )
+                                        }
                                     }
                                 }
                             }
@@ -255,7 +271,7 @@ fun WordUi(
 }
 
 @Composable
-fun BottomBar(
+fun IntroShowCaseScope.BottomBar(
     vm: WordViewModel,
     settingsVm: SettingsViewModel,
     gridState: LazyGridState,
@@ -265,61 +281,100 @@ fun BottomBar(
     CustomBottomAppBar {
         Column {
             Row(
-                horizontalArrangement = Arrangement.SpaceAround,
-                modifier = Modifier.animateContentSize()
-            ) {
-                vm.mainLetters.forEach {
-                    OutlinedIconButton(
-                        onClick = { vm.updateGuess("${vm.wordGuess}$it") },
-                        border = BorderStroke(
-                            1.dp,
-                            MaterialTheme.colorScheme.primary.copy(alpha = .5f)
-                        ),
-                    ) { Text(it.uppercase()) }
-                }
-            }
-
-            Row(
-                horizontalArrangement = Arrangement.SpaceAround,
+                horizontalArrangement = Arrangement.SpaceBetween,
                 modifier = Modifier
                     .animateContentSize()
+                    .fillMaxWidth()
+            ) {
+                Row {
+                    vm.mainLetters.forEach {
+                        OutlinedIconButton(
+                            onClick = { vm.updateGuess("${vm.wordGuess}$it") },
+                            border = BorderStroke(
+                                1.dp,
+                                MaterialTheme.colorScheme.primary.copy(alpha = .5f)
+                            ),
+                        ) { Text(it.uppercase()) }
+                    }
+                }
+
+                FilledTonalIconButton(
+                    onClick = vm::shuffle,
+                    modifier = Modifier.introShowCaseTarget(0, style = introShowCaseStyle()) {
+                        Text("Shuffle Letters")
+                    }
+                ) { Icon(Icons.Default.Shuffle, null) }
+            }
+
+            Row(
+                horizontalArrangement = Arrangement.SpaceBetween,
+                modifier = Modifier
+                    .animateContentSize()
+                    .fillMaxWidth()
                     .height(48.dp)
             ) {
-                vm.wordGuess.forEachIndexed { index, c ->
-                    OutlinedIconButton(
-                        onClick = { vm.updateGuess(vm.wordGuess.removeRange(index, index + 1)) },
-                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary)
-                    ) { Text(c.uppercase()) }
+                Row {
+                    vm.wordGuess.forEachIndexed { index, c ->
+                        OutlinedIconButton(
+                            onClick = { vm.updateGuess(vm.wordGuess.removeRange(index, index + 1)) },
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary)
+                        ) { Text(c.uppercase()) }
+                    }
+                }
+
+                FilledTonalIconButton(
+                    onClick = { vm.wordGuess = "" },
+                    modifier = Modifier.introShowCaseTarget(1, style = introShowCaseStyle()) {
+                        Text("Clear Current Hand")
+                    }
+                ) {
+                    Icon(
+                        Icons.Default.Clear,
+                        null,
+                        tint = Alizarin
+                    )
                 }
             }
 
             Row(
-                horizontalArrangement = Arrangement.SpaceAround,
+                horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.animateContentSize()
+                modifier = Modifier
+                    .animateContentSize()
+                    .fillMaxWidth()
             ) {
-                FilledTonalIconButton(onClick = vm::bringBackWord) { Icon(Icons.Default.Undo, null) }
-            }
-        }
-        Column {
-            FilledTonalIconButton(onClick = vm::shuffle) { Icon(Icons.Default.Shuffle, null) }
-            FilledTonalIconButton(onClick = { vm.wordGuess = "" }) { Icon(Icons.Default.Clear, null) }
-            FilledTonalIconButton(
-                onClick = {
-                    scope.launch {
-                        val message = vm.guess {
-                            if (settingsVm.scrollToItem) scope.launch { gridState.animateScrollToItem(it) }
-                        }
-                        snackbarHostState.currentSnackbarData?.dismiss()
-                        snackbarHostState.showSnackbar(
-                            message,
-                            withDismissAction = true,
-                            duration = SnackbarDuration.Short
-                        )
+                FilledTonalButton(
+                    onClick = vm::bringBackWord,
+                    modifier = Modifier.introShowCaseTarget(2, style = introShowCaseStyle()) {
+                        Text("Bring back the last correctly guessed word")
                     }
-                },
-                enabled = vm.wordGuess.isNotEmpty()
-            ) { Icon(Icons.Default.Send, null) }
+                ) { Icon(Icons.Default.Undo, null) }
+
+                FilledTonalButton(
+                    onClick = {
+                        scope.launch {
+                            val message = vm.guess {
+                                if (settingsVm.scrollToItem) scope.launch { gridState.animateScrollToItem(it) }
+                            }
+                            snackbarHostState.currentSnackbarData?.dismiss()
+                            snackbarHostState.showSnackbar(
+                                message,
+                                withDismissAction = true,
+                                duration = SnackbarDuration.Short
+                            )
+                        }
+                    },
+                    enabled = vm.wordGuess.isNotEmpty(),
+                    modifier = Modifier.introShowCaseTarget(3, style = introShowCaseStyle()) {
+                        Text("Guess the word")
+                    }
+                ) {
+                    Text(
+                        "ENTER",
+                        color = if (vm.wordGuess.isNotEmpty()) Emerald else LocalContentColor.current
+                    )
+                }
+            }
         }
     }
 }
@@ -350,6 +405,7 @@ fun SettingsDrawer(vm: SettingsViewModel, wordViewModel: WordViewModel, drawerSt
                 verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
                 item {
+                    var columnCount by remember(vm.columnCount) { mutableStateOf(vm.columnCount.toFloat()) }
                     NavigationDrawerItem(
                         label = {
                             ListItem(
@@ -360,22 +416,39 @@ fun SettingsDrawer(vm: SettingsViewModel, wordViewModel: WordViewModel, drawerSt
                         },
                         selected = true,
                         onClick = { vm.updateColumnCount(3) },
-                        badge = { Text(vm.columnCount.toString()) },
+                        badge = { Text(columnCount.roundToInt().toString()) },
                     )
-
-                    var columnCount by remember(vm.columnCount) { mutableStateOf(vm.columnCount.toFloat()) }
 
                     Slider(
                         value = columnCount,
                         onValueChange = { columnCount = it },
                         onValueChangeFinished = { vm.updateColumnCount(columnCount.roundToInt()) },
-                        valueRange = 2f..5f
+                        valueRange = 1f..5f
                     )
                 }
 
                 item { Divider() }
 
+                item {
+                    NavigationDrawerItem(
+                        label = {
+                            ListItem(
+                                headlineText = { Text("Show Tutorial") },
+                                supportingText = { Text("It might only come up on next app open") },
+                                colors = ListItemDefaults.colors(containerColor = Color.Transparent)
+                            )
+                        },
+                        selected = true,
+                        onClick = {
+                            scope.launch { drawerState.close() }
+                            vm.showShowcase()
+                        },
+                    )
+                }
+
                 if (BuildConfig.DEBUG) {
+                    item { Divider() }
+
                     item {
                         NavigationDrawerItem(
                             label = {
