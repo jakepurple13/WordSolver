@@ -308,12 +308,9 @@ fun IntroShowCaseScope.BottomBar(
 
             Row(
                 horizontalArrangement = Arrangement.SpaceBetween,
-                modifier = Modifier
-                    .animateContentSize()
-                    .fillMaxWidth()
-                    .height(48.dp)
+                modifier = Modifier.fillMaxWidth()
             ) {
-                Row {
+                Row(modifier = Modifier.animateContentSize()) {
                     vm.wordGuess.forEachIndexed { index, c ->
                         OutlinedIconButton(
                             onClick = { vm.updateGuess(vm.wordGuess.removeRange(index, index + 1)) },
@@ -327,13 +324,7 @@ fun IntroShowCaseScope.BottomBar(
                     modifier = Modifier.introShowCaseTarget(1, style = introShowCaseStyle()) {
                         Text("Clear Current Hand")
                     }
-                ) {
-                    Icon(
-                        Icons.Default.Clear,
-                        null,
-                        tint = Alizarin
-                    )
-                }
+                ) { Icon(Icons.Default.Clear, null, tint = Alizarin) }
             }
 
             Row(
