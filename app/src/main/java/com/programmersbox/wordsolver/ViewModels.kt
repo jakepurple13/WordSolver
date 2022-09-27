@@ -53,12 +53,17 @@ class WordViewModel(context: Context) : ViewModel() {
     var gotNewHint by mutableStateOf(false)
 
     var showScoreInfo by mutableStateOf(false)
+    private var internalScore = 0
     val score by derivedStateOf {
-        wordGuesses
-            .groupBy { it.length }
-            .map { it.key * (it.value.size + it.key) }
-            .ifEmpty { listOf(0) }
-            .reduce { acc, i -> acc + i }
+        if (finishedGame) {
+            internalScore
+        } else {
+            wordGuesses
+                .groupBy { it.length }
+                .map { it.key * (it.value.size + it.key) }
+                .ifEmpty { listOf(0) }
+                .reduce { acc, i -> acc + i }
+        }
     }
 
     val scoreInfo by derivedStateOf {
@@ -105,6 +110,7 @@ class WordViewModel(context: Context) : ViewModel() {
             shouldStartNewGame = false
             finishedGame = false
             isLoading = true
+            internalScore = 0
             definitionMap.clear()
             val hintUpdates = if (
                 (wordGuesses.size >= anagramWords.size / 2 || wordGuesses.any { it.length == 7 }) && !usedFinishGame
@@ -152,6 +158,7 @@ class WordViewModel(context: Context) : ViewModel() {
     }
 
     fun endGame() {
+        internalScore = score
         usedFinishGame = !(wordGuesses.size >= anagramWords.size / 2 || wordGuesses.any { it.length == 7 })
         wordGuesses = anagramWords
         finishGame = false
