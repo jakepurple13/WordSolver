@@ -310,7 +310,11 @@ fun IntroShowCaseScope.BottomBar(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Row(modifier = Modifier.animateContentSize()) {
+                Row(
+                    modifier = Modifier
+                        .height(48.dp)
+                        .animateContentSize()
+                ) {
                     vm.wordGuess.forEachIndexed { index, c ->
                         OutlinedIconButton(
                             onClick = { vm.updateGuess(vm.wordGuess.removeRange(index, index + 1)) },
