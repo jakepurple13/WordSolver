@@ -56,12 +56,16 @@ class WordViewModel(context: Context) : ViewModel() {
     val score by derivedStateOf {
         wordGuesses
             .groupBy { it.length }
-            .map { it.key * it.value.size }
+            .map { it.key * (it.value.size + it.key) }
             .ifEmpty { listOf(0) }
             .reduce { acc, i -> acc + i }
     }
 
-    val scoreInfo by derivedStateOf { wordGuesses.groupBy { it.length } }
+    val scoreInfo by derivedStateOf {
+        wordGuesses
+            .groupBy { it.length }
+            .mapValues { (it.value.size + it.key) * it.key }
+    }
 
     init {
         viewModelScope.launch {

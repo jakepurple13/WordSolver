@@ -640,7 +640,7 @@ fun WordDialogs(vm: WordViewModel) {
             text = {
                 LazyColumn {
                     items(vm.scoreInfo.entries.toList()) {
-                        ListItem(headlineText = { Text("${it.key} = ${it.value.size * it.key} points") })
+                        ListItem(headlineText = { Text("${it.key} = ${it.value} points") })
                     }
                 }
             },
