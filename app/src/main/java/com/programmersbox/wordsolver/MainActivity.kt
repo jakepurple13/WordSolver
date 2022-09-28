@@ -71,7 +71,6 @@ fun WordUi(
     vm: WordViewModel = viewModel { WordViewModel(context) },
     settingsVm: SettingsViewModel = viewModel { SettingsViewModel(context) }
 ) {
-
     LoadingDialog(
         showLoadingDialog = vm.isLoading,
         onDismissRequest = {}
@@ -79,73 +78,11 @@ fun WordUi(
 
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val settingsDrawerState = rememberDrawerState(DrawerValue.Closed)
-    val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
     val gridState = rememberLazyGridState()
 
-    LaunchedEffect(vm.error) {
-        if (vm.error != null) {
-            snackbarHostState.currentSnackbarData?.dismiss()
-            val result = snackbarHostState.showSnackbar(
-                vm.error!!,
-                withDismissAction = true,
-                duration = SnackbarDuration.Long
-            )
-            when (result) {
-                SnackbarResult.Dismissed -> vm.error = null
-                SnackbarResult.ActionPerformed -> vm.error = null
-            }
-        } else {
-            snackbarHostState.currentSnackbarData?.dismiss()
-        }
-    }
-
-    LaunchedEffect(vm.gotNewHint) {
-        if (vm.gotNewHint) {
-            snackbarHostState.currentSnackbarData?.dismiss()
-            val result = snackbarHostState.showSnackbar(
-                "Got enough words for a new hint!",
-                withDismissAction = true,
-                duration = SnackbarDuration.Short
-            )
-            vm.gotNewHint = when (result) {
-                SnackbarResult.Dismissed -> false
-                SnackbarResult.ActionPerformed -> false
-            }
-        } else {
-            snackbarHostState.currentSnackbarData?.dismiss()
-        }
-    }
-
-    var goingBack by remember { mutableStateOf(true) }
-
-    BackHandler(goingBack) {
-        when {
-            drawerState.isOpen -> scope.launch { drawerState.close() }
-            settingsDrawerState.isOpen -> scope.launch { settingsDrawerState.close() }
-            else -> {
-                goingBack = false
-                Toast.makeText(context, "Go back again to exit", Toast.LENGTH_SHORT).show()
-            }
-        }
-    }
-
-    LaunchedEffect(!goingBack) {
-        if (!goingBack) {
-            delay(5000)
-            goingBack = true
-        }
-    }
-
-    LifecycleHandle(
-        onDestroy = { goingBack = true },
-        onStop = { goingBack = true },
-        onCreate = { goingBack = true },
-        onResume = { goingBack = true },
-        onPause = { goingBack = true },
-        onStart = { goingBack = true },
-        onAny = { goingBack = true }
-    )
+    SnackbarHandler(vm = vm, snackbarHostState = snackbarHostState)
+    BackButtonHandler(drawerState = drawerState, settingsDrawerState = settingsDrawerState)
 
     WordDialogs(vm)
 
@@ -190,94 +127,115 @@ fun WordUi(
                     snackbarHost = { SnackbarHost(snackbarHostState) },
                     modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection)
                 ) { padding ->
-                    Column(
-                        modifier = Modifier.padding(padding)
-                    ) {
-                        Box(
-                            modifier = Modifier.fillMaxWidth()
+                    WordContent(
+                        padding = padding,
+                        vm = vm,
+                        settingsVm = settingsVm,
+                        gridState = gridState,
+                        settingsDrawerState = settingsDrawerState,
+                        drawerState = drawerState
+                    )
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun IntroShowCaseScope.WordContent(
+    padding: PaddingValues,
+    vm: WordViewModel,
+    settingsVm: SettingsViewModel,
+    gridState: LazyGridState,
+    settingsDrawerState: DrawerState,
+    drawerState: DrawerState
+) {
+    val scope = rememberCoroutineScope()
+    Column(
+        modifier = Modifier.padding(padding)
+    ) {
+        Box(
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            FilledTonalButton(
+                onClick = vm::useHint,
+                enabled = vm.hintCount > 0,
+                modifier = Modifier
+                    .align(Alignment.CenterStart)
+                    .introShowCaseTarget(4, style = introShowCaseStyle()) {
+                        Text("Use a hint")
+                    }
+            ) {
+                Icon(Icons.Default.QuestionMark, null)
+                Text(vm.hintCount.toString())
+            }
+
+            FilledTonalButton(
+                onClick = { vm.showScoreInfo = true },
+                enabled = vm.score > 0,
+                modifier = Modifier
+                    .align(Alignment.Center)
+                    .introShowCaseTarget(5, style = introShowCaseStyle()) {
+                        Text("Click here to see your points breakdown")
+                    }
+            ) { Text("${animateIntAsState(vm.score).value} points") }
+
+            FilledTonalIconButton(
+                onClick = { scope.launch { settingsDrawerState.open() } },
+                modifier = Modifier.align(Alignment.CenterEnd)
+            ) { Icon(Icons.Default.Settings, null) }
+        }
+        LazyVerticalGrid(
+            state = gridState,
+            columns = GridCells.Fixed(settingsVm.columnCount),
+            verticalArrangement = Arrangement.spacedBy(2.dp),
+            horizontalArrangement = Arrangement.spacedBy(2.dp),
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(vertical = 2.dp)
+        ) {
+            items(vm.anagramWords.sortedByDescending { it.length }) { anagrams ->
+                Crossfade(targetState = vm.wordGuesses.any { it.equals(anagrams, true) }) { state ->
+                    if (state) {
+                        OutlinedCard(
+                            onClick = { vm.getDefinition(anagrams) { scope.launch { drawerState.open() } } },
                         ) {
-                            FilledTonalButton(
-                                onClick = vm::useHint,
-                                enabled = vm.hintCount > 0,
-                                modifier = Modifier
-                                    .align(Alignment.CenterStart)
-                                    .introShowCaseTarget(4, style = introShowCaseStyle()) {
-                                        Text("Use a hint")
-                                    }
-                            ) {
-                                Icon(Icons.Default.QuestionMark, null)
-                                Text(vm.hintCount.toString())
+                            CustomListItem {
+                                Box(
+                                    Modifier
+                                        .weight(1f)
+                                        .align(Alignment.CenterVertically)
+                                ) { Text(anagrams, style = MaterialTheme.typography.bodyMedium) }
                             }
-
-                            FilledTonalButton(
-                                onClick = { vm.showScoreInfo = true },
-                                enabled = vm.score > 0,
-                                modifier = Modifier
-                                    .align(Alignment.Center)
-                                    .introShowCaseTarget(5, style = introShowCaseStyle()) {
-                                        Text("Click here to see your points breakdown")
-                                    }
-                            ) { Text("${animateIntAsState(vm.score).value} points") }
-
-                            FilledTonalIconButton(
-                                onClick = { scope.launch { settingsDrawerState.open() } },
-                                modifier = Modifier.align(Alignment.CenterEnd)
-                            ) { Icon(Icons.Default.Settings, null) }
                         }
-                        LazyVerticalGrid(
-                            state = gridState,
-                            columns = GridCells.Fixed(settingsVm.columnCount),
-                            verticalArrangement = Arrangement.spacedBy(2.dp),
-                            horizontalArrangement = Arrangement.spacedBy(2.dp),
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .padding(vertical = 2.dp)
-                        ) {
-                            items(vm.anagramWords.sortedByDescending { it.length }) { anagrams ->
-                                Crossfade(targetState = vm.wordGuesses.any { it.equals(anagrams, true) }) { state ->
-                                    if (state) {
-                                        OutlinedCard(
-                                            onClick = { vm.getDefinition(anagrams) { scope.launch { drawerState.open() } } },
-                                        ) {
-                                            CustomListItem {
-                                                Box(
-                                                    Modifier
-                                                        .weight(1f)
-                                                        .align(Alignment.CenterVertically)
-                                                ) { Text(anagrams, style = MaterialTheme.typography.bodyMedium) }
-                                            }
-                                        }
-                                    } else {
-                                        ElevatedCard(onClick = {}, enabled = false) {
-                                            CustomListItem {
-                                                Box(
-                                                    Modifier
-                                                        .weight(1f)
-                                                        .align(Alignment.CenterVertically)
-                                                ) {
-                                                    Text(
-                                                        anagrams
-                                                            .uppercase()
-                                                            .replace(
-                                                                if (vm.hintList.isNotEmpty()) {
-                                                                    Regex("[^${vm.hintList.joinToString("")}]")
-                                                                } else {
-                                                                    Regex("\\w")
-                                                                },
-                                                                " _"
-                                                            ),
-                                                        style = MaterialTheme.typography.bodyMedium
-                                                    )
-                                                }
-                                                Spacer(Modifier.width(4.dp))
-                                                Text(
-                                                    "${anagrams.length}",
-                                                    style = MaterialTheme.typography.bodyMedium
-                                                )
-                                            }
-                                        }
-                                    }
+                    } else {
+                        ElevatedCard(onClick = {}, enabled = false) {
+                            CustomListItem {
+                                Box(
+                                    Modifier
+                                        .weight(1f)
+                                        .align(Alignment.CenterVertically)
+                                ) {
+                                    Text(
+                                        anagrams
+                                            .uppercase()
+                                            .replace(
+                                                if (vm.hintList.isNotEmpty()) {
+                                                    Regex("[^${vm.hintList.joinToString("")}]")
+                                                } else {
+                                                    Regex("\\w")
+                                                },
+                                                " _"
+                                            ),
+                                        style = MaterialTheme.typography.bodyMedium
+                                    )
                                 }
+                                Spacer(Modifier.width(4.dp))
+                                Text(
+                                    "${anagrams.length}",
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
                             }
                         }
                     }
@@ -659,6 +617,79 @@ fun WordDialogs(vm: WordViewModel) {
             confirmButton = { TextButton(onClick = { vm.showScoreInfo = false }) { Text("Done") } },
         )
     }
+}
+
+@Composable
+fun SnackbarHandler(vm: WordViewModel, snackbarHostState: SnackbarHostState) {
+    LaunchedEffect(vm.error) {
+        if (vm.error != null) {
+            snackbarHostState.currentSnackbarData?.dismiss()
+            val result = snackbarHostState.showSnackbar(
+                vm.error!!,
+                withDismissAction = true,
+                duration = SnackbarDuration.Long
+            )
+            when (result) {
+                SnackbarResult.Dismissed -> vm.error = null
+                SnackbarResult.ActionPerformed -> vm.error = null
+            }
+        } else {
+            snackbarHostState.currentSnackbarData?.dismiss()
+        }
+    }
+
+    LaunchedEffect(vm.gotNewHint) {
+        if (vm.gotNewHint) {
+            snackbarHostState.currentSnackbarData?.dismiss()
+            val result = snackbarHostState.showSnackbar(
+                "Got enough words for a new hint!",
+                withDismissAction = true,
+                duration = SnackbarDuration.Short
+            )
+            vm.gotNewHint = when (result) {
+                SnackbarResult.Dismissed -> false
+                SnackbarResult.ActionPerformed -> false
+            }
+        } else {
+            snackbarHostState.currentSnackbarData?.dismiss()
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun BackButtonHandler(drawerState: DrawerState, settingsDrawerState: DrawerState) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    var goingBack by remember { mutableStateOf(true) }
+
+    BackHandler(goingBack) {
+        when {
+            drawerState.isOpen -> scope.launch { drawerState.close() }
+            settingsDrawerState.isOpen -> scope.launch { settingsDrawerState.close() }
+            else -> {
+                goingBack = false
+                Toast.makeText(context, "Go back again to exit", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    LaunchedEffect(!goingBack) {
+        if (!goingBack) {
+            delay(5000)
+            goingBack = true
+        }
+    }
+
+    LifecycleHandle(
+        onDestroy = { goingBack = true },
+        onStop = { goingBack = true },
+        onCreate = { goingBack = true },
+        onResume = { goingBack = true },
+        onPause = { goingBack = true },
+        onStart = { goingBack = true },
+        onAny = { goingBack = true }
+    )
 }
 
 @Composable
