@@ -198,7 +198,7 @@ fun WordUi(
                         ) {
                             FilledTonalButton(
                                 onClick = vm::useHint,
-                                enabled = vm.hints > 0,
+                                enabled = vm.hintCount > 0,
                                 modifier = Modifier
                                     .align(Alignment.CenterStart)
                                     .introShowCaseTarget(4, style = introShowCaseStyle()) {
@@ -206,7 +206,7 @@ fun WordUi(
                                     }
                             ) {
                                 Icon(Icons.Default.QuestionMark, null)
-                                Text(vm.hints.toString())
+                                Text(vm.hintCount.toString())
                             }
 
                             FilledTonalButton(

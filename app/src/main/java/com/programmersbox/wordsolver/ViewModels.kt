@@ -48,9 +48,11 @@ class WordViewModel(context: Context) : ViewModel() {
 
     var error: String? by mutableStateOf(null)
 
+    var defaultHint by mutableStateOf(false)
     var hints by mutableStateOf(0)
     var hintList by mutableStateOf(emptySet<String>())
     var gotNewHint by mutableStateOf(false)
+    val hintCount by derivedStateOf { hints + if (defaultHint) 0 else 1 }
 
     var showScoreInfo by mutableStateOf(false)
     private var internalScore = 0
@@ -112,15 +114,13 @@ class WordViewModel(context: Context) : ViewModel() {
             isLoading = true
             internalScore = 0
             definitionMap.clear()
-            val hintUpdates = if (
+            if (
                 (wordGuesses.size >= anagramWords.size / 2 || wordGuesses.any { it.length == 7 }) && !usedFinishGame
             ) {
                 gotNewHint = true
-                2
-            } else {
-                1
+                savedDataHandling.updateHints(hints + 1)
             }
-            savedDataHandling.updateHints(hints + hintUpdates)
+            defaultHint = false
             savedDataHandling.updateWordGuesses(emptyList())
             savedDataHandling.updateHintList(emptySet())
             usedFinishGame = false
@@ -182,7 +182,10 @@ class WordViewModel(context: Context) : ViewModel() {
 
     fun useHint() {
         if (hints > 0) {
-            viewModelScope.launch { savedDataHandling.updateHints(hints - 1) }
+            if (defaultHint) {
+                viewModelScope.launch { savedDataHandling.updateHints(hints - 1) }
+            }
+            defaultHint = true
             mainLetters
                 .uppercase()
                 .filterNot { hintList.contains(it.toString()) }
