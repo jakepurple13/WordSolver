@@ -70,6 +70,7 @@ class WordViewModel(context: Context) : ViewModel() {
 
     val scoreInfo by derivedStateOf {
         wordGuesses
+            .sortedByDescending { it.length }
             .groupBy { it.length }
             .mapValues { (it.value.size + it.key) * it.key }
     }

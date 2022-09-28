@@ -563,14 +563,12 @@ fun LoadingDialog(
                 modifier = Modifier
                     .size(100.dp)
                     .background(
-                        MaterialTheme.colorScheme.surface,
+                        color = MaterialTheme.colorScheme.surface,
                         shape = RoundedCornerShape(28.0.dp)
                     )
             ) {
                 Column {
-                    CircularProgressIndicator(
-                        modifier = Modifier.align(Alignment.CenterHorizontally)
-                    )
+                    CircularProgressIndicator(modifier = Modifier.align(Alignment.CenterHorizontally))
                     Text(text = "Loading", Modifier.align(Alignment.CenterHorizontally))
                 }
             }
