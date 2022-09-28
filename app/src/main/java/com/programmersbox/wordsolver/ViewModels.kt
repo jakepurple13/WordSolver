@@ -48,11 +48,11 @@ class WordViewModel(context: Context) : ViewModel() {
 
     var error: String? by mutableStateOf(null)
 
-    var defaultHint by mutableStateOf(false)
+    var usedHint by mutableStateOf(false)
     var hints by mutableStateOf(0)
     var hintList by mutableStateOf(emptySet<String>())
     var gotNewHint by mutableStateOf(false)
-    val hintCount by derivedStateOf { hints + if (defaultHint) 0 else 1 }
+    val hintCount by derivedStateOf { hints + if (usedHint) 0 else 1 }
 
     var showScoreInfo by mutableStateOf(false)
     private var internalScore = 0
@@ -101,6 +101,11 @@ class WordViewModel(context: Context) : ViewModel() {
                 .collect()
         }
         viewModelScope.launch {
+            savedDataHandling.usedHint
+                .onEach { usedHint = it }
+                .collect()
+        }
+        viewModelScope.launch {
             if (!savedDataHandling.hasSavedData()) {
                 getWord()
             }
@@ -120,7 +125,7 @@ class WordViewModel(context: Context) : ViewModel() {
                 gotNewHint = true
                 savedDataHandling.updateHints(hints + 1)
             }
-            defaultHint = false
+            savedDataHandling.updateUsedHint(false)
             savedDataHandling.updateWordGuesses(emptyList())
             savedDataHandling.updateHintList(emptySet())
             usedFinishGame = false
@@ -182,10 +187,10 @@ class WordViewModel(context: Context) : ViewModel() {
 
     fun useHint() {
         if (hints > 0) {
-            if (defaultHint) {
+            if (usedHint) {
                 viewModelScope.launch { savedDataHandling.updateHints(hints - 1) }
             }
-            defaultHint = true
+            viewModelScope.launch { savedDataHandling.updateUsedHint(true) }
             mainLetters
                 .uppercase()
                 .filterNot { hintList.contains(it.toString()) }
@@ -299,6 +304,7 @@ class SavedDataHandling(context: Context) {
         private val ANAGRAMS = stringPreferencesKey("anagrams")
         private val HINTS = intPreferencesKey("hints")
         private val HINT_LIST = stringSetPreferencesKey("hint_list")
+        private val USED_HINT = booleanPreferencesKey("used_hint")
     }
 
     val mainLetters = dataStore.data.map { it[MAIN_LETTERS] ?: "" }
@@ -324,6 +330,11 @@ class SavedDataHandling(context: Context) {
     val hintList = dataStore.data.map { it[HINT_LIST] ?: emptySet() }
     suspend fun updateHintList(hintList: Set<String>) {
         dataStore.edit { it[HINT_LIST] = hintList }
+    }
+
+    val usedHint = dataStore.data.map { it[USED_HINT] ?: false }
+    suspend fun updateUsedHint(usedHint: Boolean) {
+        dataStore.edit { it[USED_HINT] = usedHint }
     }
 
     suspend fun hasSavedData(): Boolean {
