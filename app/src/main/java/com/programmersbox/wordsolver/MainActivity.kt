@@ -265,10 +265,7 @@ fun IntroShowCaseScope.BottomBar(
                     vm.mainLetters.forEach {
                         OutlinedIconButton(
                             onClick = { vm.updateGuess("${vm.wordGuess}$it") },
-                            border = BorderStroke(
-                                1.dp,
-                                MaterialTheme.colorScheme.primary.copy(alpha = .5f)
-                            ),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = .5f)),
                         ) { Text(it.uppercase()) }
                     }
                 }
