@@ -18,6 +18,10 @@ class WordViewModel(context: Context) : ViewModel() {
 
     private val savedDataHandling = SavedDataHandling(context)
 
+    private val networkRetrieving: NetworkRetrieving by lazy {
+        if (BuildConfig.BUILD_TYPE == "lanVersion") LanVersion() else APIVersion()
+    }
+
     var shouldStartNewGame by mutableStateOf(false)
     var finishGame by mutableStateOf(false)
     var finishedGame by mutableStateOf(false)
@@ -126,35 +130,8 @@ class WordViewModel(context: Context) : ViewModel() {
             savedDataHandling.updateHintList(emptySet())
             usedFinishGame = false
             wordGuess = ""
-            val newLetters = withContext(Dispatchers.IO) {
-                getLetters().fold(
-                    onSuccess = {
-                        withContext(Dispatchers.Main) { error = null }
-                        it.firstOrNull()
-                            .orEmpty()
-                            .toList()
-                            .shuffled()
-                            .joinToString("")
-                    },
-                    onFailure = {
-                        it.printStackTrace()
-                        withContext(Dispatchers.Main) { error = "Something went Wrong" }
-                        ""
-                    }
-                ).also { savedDataHandling.updateMainLetters(it) }
-            }
-            withContext(Dispatchers.IO) {
-                getAnagram(newLetters).fold(
-                    onSuccess = {
-                        withContext(Dispatchers.Main) { error = null }
-                        it
-                    },
-                    onFailure = {
-                        it.printStackTrace()
-                        withContext(Dispatchers.Main) { error = "Something went Wrong" }
-                        emptyList()
-                    }
-                ).let { savedDataHandling.updateAnagrams(it) }
+            networkRetrieving.getLettersAndAnagrams(savedDataHandling) {
+                withContext(Dispatchers.Main) { error = if (it != null) "Something went Wrong" else null }
             }
             isLoading = false
         }
@@ -232,7 +209,7 @@ class WordViewModel(context: Context) : ViewModel() {
             } else {
                 isLoading = true
                 withContext(Dispatchers.IO) {
-                    definition = withTimeoutOrNull(5000) { getWordDefinition(word) }?.fold(
+                    definition = withTimeoutOrNull(5000) { networkRetrieving.getDefinition(word) }?.fold(
                         onSuccess = { definition ->
                             error = null
                             definition.firstOrNull()?.also {
@@ -240,7 +217,10 @@ class WordViewModel(context: Context) : ViewModel() {
                                 definitionMap[word] = it
                             }
                         },
-                        onFailure = { null }
+                        onFailure = {
+                            it.printStackTrace()
+                            null
+                        }
                     )
                     if (definition == null) error = "Something went Wrong"
                 }
@@ -255,7 +235,6 @@ class SettingsViewModel(context: Context) : ViewModel() {
     private val settingsHandling = SettingsHandling(context)
 
     val showcase by lazy { settingsHandling.showShowcase }
-
     var scrollToItem by mutableStateOf(false)
     var columnCount by mutableStateOf(3)
 

@@ -3,6 +3,7 @@ plugins {
     id 'org.jetbrains.kotlin.android'
     id "com.google.protobuf" version "0.8.17"
     id 'kotlinx-serialization'
+    id "com.starter.easylauncher" version "5.1.2"
 }
 
 android {
@@ -17,9 +18,8 @@ android {
         versionName "1.4"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
-        vectorDrawables {
-            useSupportLibrary true
-        }
+        vectorDrawables { useSupportLibrary true }
+        buildConfigField "String", "IP4_ADDRESS", "\"http://${getIP()}:8080\""
     }
 
     buildTypes {
@@ -32,7 +32,13 @@ android {
             matchingFallbacks = ['debug', 'release']
             debuggable false
         }
+        lanVersion {
+            initWith debug
+            matchingFallbacks = ['debug', 'release']
+            applicationIdSuffix = ".lanVersion"
+        }
     }
+
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_1_8
         targetCompatibility JavaVersion.VERSION_1_8
@@ -79,6 +85,7 @@ dependencies {
     implementation "io.ktor:ktor-client-cio:2.1.2"
     implementation "io.ktor:ktor-client-content-negotiation:2.1.2"
     implementation "io.ktor:ktor-serialization-kotlinx-json:2.1.2"
+    implementation "io.ktor:ktor-client-logging:2.1.2"
     implementation "com.google.code.gson:gson:2.9.1"
 
     implementation "androidx.datastore:datastore:1.0.0"
@@ -103,6 +110,36 @@ protobuf {
                     option 'lite'
                 }
             }
+        }
+    }
+}
+
+static def getIP() {
+    InetAddress result = null
+    Enumeration<NetworkInterface> interfaces = NetworkInterface.getNetworkInterfaces()
+    while (interfaces.hasMoreElements()) {
+        Enumeration<InetAddress> addresses = interfaces.nextElement().getInetAddresses()
+        while (addresses.hasMoreElements()) {
+            InetAddress address = addresses.nextElement()
+            if (!address.isLoopbackAddress()) {
+                if (address.isSiteLocalAddress()) {
+                    return address.getHostAddress()
+                } else if (result == null) {
+                    result = address
+                }
+            }
+        }
+    }
+    return (result != null ? result : InetAddress.getLocalHost()).getHostAddress()
+}
+
+easylauncher {
+    defaultFlavorNaming true
+    buildTypes {
+        beta { filters chromeLike(gravity: "Top") }
+        lanVersion {
+            filters chromeLike(gravity: "Top")
+            enable true
         }
     }
 }

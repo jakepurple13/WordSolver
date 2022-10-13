@@ -12,6 +12,7 @@ import com.google.protobuf.InvalidProtocolBufferException
 import io.ktor.client.*
 import io.ktor.client.call.*
 import io.ktor.client.plugins.contentnegotiation.*
+import io.ktor.client.plugins.logging.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
@@ -43,6 +44,7 @@ suspend inline fun <reified T> getApi(
     noinline headers: HeadersBuilder.() -> Unit = {}
 ): T? {
     val client = HttpClient {
+        install(Logging)
         install(ContentNegotiation) {
             json(
                 Json {
@@ -64,9 +66,9 @@ data class Anagrams(val word: String?, val length: Int?, val conundrum: Boolean?
 @Serializable
 data class BaseDefinition(
     val word: String?,
-    val phonetic: String?,
-    val phonetics: List<Phonetics>?,
-    val origin: String?,
+    val phonetic: String? = null,
+    val phonetics: List<Phonetics>? = emptyList(),
+    val origin: String? = null,
     val meanings: List<Meanings>?
 )
 
@@ -132,3 +134,98 @@ interface GenericSerializer<MessageType, BuilderType> : Serializer<MessageType>
         withContext(Dispatchers.IO) { t.writeTo(output) }
 }
 
+interface NetworkRetrieving {
+    suspend fun getLettersAndAnagrams(savedDataHandling: SavedDataHandling, onError: suspend (Throwable?) -> Unit = {})
+    suspend fun getDefinition(word: String): Result<List<BaseDefinition>>
+}
+
+class LanVersion : NetworkRetrieving {
+
+    override suspend fun getLettersAndAnagrams(
+        savedDataHandling: SavedDataHandling,
+        onError: suspend (Throwable?) -> Unit
+    ) {
+        @Serializable
+        data class Word(val word: String, val anagrams: List<String>)
+        runCatching { getApi<Word>("${BuildConfig.IP4_ADDRESS}/randomWord/7?minimumSize=4") }
+            .fold(
+                onSuccess = { word ->
+                    println(word)
+                    if (word != null) {
+                        savedDataHandling.updateMainLetters(word.word)
+                        savedDataHandling.updateAnagrams(word.anagrams.map { Anagrams(it, it.length, false) })
+                    }
+                },
+                onFailure = {
+                    it.printStackTrace()
+                    onError(it)
+                }
+            )
+    }
+
+    override suspend fun getDefinition(word: String): Result<List<BaseDefinition>> = runCatching {
+        @Serializable
+        data class Definition(val word: String, val definition: String)
+
+        getApi<Definition>("${BuildConfig.IP4_ADDRESS}/wordDefinition/$word")
+            ?.let {
+                listOf(
+                    BaseDefinition(
+                        it.word,
+                        meanings = listOf(
+                            Meanings(
+                                partOfSpeech = null,
+                                definitions = listOf(Definitions(it.definition))
+                            )
+                        ),
+                        origin = null,
+                        phonetic = null,
+                        phonetics = emptyList()
+                    )
+                )
+            }
+            .orEmpty()
+    }
+}
+
+class APIVersion : NetworkRetrieving {
+
+    override suspend fun getLettersAndAnagrams(
+        savedDataHandling: SavedDataHandling,
+        onError: suspend (Throwable?) -> Unit
+    ) {
+        val newLetters = withContext(Dispatchers.IO) {
+            getLetters().fold(
+                onSuccess = {
+                    onError(null)
+                    it.firstOrNull()
+                        .orEmpty()
+                        .toList()
+                        .shuffled()
+                        .joinToString("")
+                },
+                onFailure = {
+                    it.printStackTrace()
+                    onError(it)
+                    ""
+                }
+            ).also { savedDataHandling.updateMainLetters(it) }
+        }
+        withContext(Dispatchers.IO) {
+            getAnagram(newLetters).fold(
+                onSuccess = {
+                    onError(null)
+                    it
+                },
+                onFailure = {
+                    it.printStackTrace()
+                    onError(it)
+                    emptyList()
+                }
+            ).let { savedDataHandling.updateAnagrams(it) }
+        }
+    }
+
+    override suspend fun getDefinition(word: String) = getWordDefinition(word)
+
+}
