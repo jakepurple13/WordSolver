@@ -5,16 +5,11 @@ import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.*
-import androidx.datastore.preferences.preferencesDataStore
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.collect
-import kotlinx.coroutines.flow.firstOrNull
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
@@ -131,7 +126,7 @@ class WordViewModel(context: Context) : ViewModel() {
             savedDataHandling.updateHintList(emptySet())
             usedFinishGame = false
             wordGuess = ""
-            withContext(Dispatchers.IO) {
+            val newLetters = withContext(Dispatchers.IO) {
                 getLetters().fold(
                     onSuccess = {
                         withContext(Dispatchers.Main) { error = null }
@@ -142,18 +137,20 @@ class WordViewModel(context: Context) : ViewModel() {
                             .joinToString("")
                     },
                     onFailure = {
+                        it.printStackTrace()
                         withContext(Dispatchers.Main) { error = "Something went Wrong" }
                         ""
                     }
-                ).let { savedDataHandling.updateMainLetters(it) }
+                ).also { savedDataHandling.updateMainLetters(it) }
             }
             withContext(Dispatchers.IO) {
-                getAnagram(mainLetters).fold(
+                getAnagram(newLetters).fold(
                     onSuccess = {
                         withContext(Dispatchers.Main) { error = null }
-                        it.orEmpty()
+                        it
                     },
                     onFailure = {
+                        it.printStackTrace()
                         withContext(Dispatchers.Main) { error = "Something went Wrong" }
                         emptyList()
                     }
@@ -292,17 +289,15 @@ class SettingsViewModel(context: Context) : ViewModel() {
     }
 }
 
-
-private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "settings")
-
 class SavedDataHandling(context: Context) {
 
     private val dataStore by lazy { context.dataStore }
+    private val preferences by lazy { context.savedData }
+    private val all: Flow<SavedData> get() = preferences.data
 
     companion object {
         private val MAIN_LETTERS = stringPreferencesKey("main_word")
         private val WORD_GUESSES = stringSetPreferencesKey("word_guesses")
-        private val ANAGRAMS = stringPreferencesKey("anagrams")
         private val HINTS = intPreferencesKey("hints")
         private val HINT_LIST = stringSetPreferencesKey("hint_list")
         private val USED_HINT = booleanPreferencesKey("used_hint")
@@ -318,9 +313,17 @@ class SavedDataHandling(context: Context) {
         dataStore.edit { it[WORD_GUESSES] = words.toSet() }
     }
 
-    val anagrams = dataStore.data.map { it[ANAGRAMS].fromJson<List<Anagrams>>().orEmpty() }
-    suspend fun updateAnagrams(anagrams: List<Anagrams>) {
-        dataStore.edit { it[ANAGRAMS] = anagrams.toJson() }
+    val anagrams = all.map { p -> p.anagramsList.map { Anagrams(it.word, it.length, it.conundrum) } }
+    suspend fun updateAnagrams(anagrams: List<Anagrams>) = preferences.update {
+        clearAnagrams()
+        val list = anagrams.map {
+            anagramWrapper {
+                word = it.word.orEmpty()
+                length = it.length ?: 0
+                conundrum = it.conundrum ?: false
+            }
+        }
+        addAllAnagrams(list)
     }
 
     val hints = dataStore.data.map { it[HINTS] ?: 4 }
@@ -340,32 +343,21 @@ class SavedDataHandling(context: Context) {
 
     suspend fun hasSavedData(): Boolean {
         return dataStore.data.map {
-            it[MAIN_LETTERS] != null && it[WORD_GUESSES] != null && it[ANAGRAMS] != null
+            it[MAIN_LETTERS] != null && all.map { p -> p.anagramsList.isNotEmpty() }.firstOrNull() == true
         }.firstOrNull() ?: false
     }
 }
 
 class SettingsHandling(context: Context) {
-    private val dataStore by lazy { context.dataStore }
+    private val preferences by lazy { context.settings }
+    private val all: Flow<Settings> get() = preferences.data
 
-    companion object {
-        private val SCROLL_TO_ITEM_ON_ALREADY_GUESSED = booleanPreferencesKey("scroll_to_item_on_already_guessed")
-        private val COLUMN_AMOUNT = intPreferencesKey("column_amount")
-        private val SHOW_SHOWCASE = booleanPreferencesKey("show_showcase")
-    }
+    val scrollToItem = all.map { it.scrollToItemOnAlreadyGuessed }
+    suspend fun updateItemScroll(scroll: Boolean) = preferences.update { setScrollToItemOnAlreadyGuessed(scroll) }
 
-    val scrollToItem = dataStore.data.map { it[SCROLL_TO_ITEM_ON_ALREADY_GUESSED] ?: false }
-    suspend fun updateItemScroll(scroll: Boolean) {
-        dataStore.edit { it[SCROLL_TO_ITEM_ON_ALREADY_GUESSED] = scroll }
-    }
+    val columnAmount = all.map { it.columnAmount.coerceAtLeast(1) }
+    suspend fun updateColumnAmount(columnCount: Int) = preferences.update { setColumnAmount(columnCount) }
 
-    val columnAmount = dataStore.data.map { it[COLUMN_AMOUNT] ?: 3 }
-    suspend fun updateColumnAmount(columnCount: Int) {
-        dataStore.edit { it[COLUMN_AMOUNT] = columnCount }
-    }
-
-    val showShowcase = dataStore.data.map { it[SHOW_SHOWCASE] ?: true }
-    suspend fun updateShowcase(showShowcase: Boolean) {
-        dataStore.edit { it[SHOW_SHOWCASE] = showShowcase }
-    }
+    val showShowcase = all.map { it.showShowCase }
+    suspend fun updateShowcase(showShowcase: Boolean) = preferences.update { setShowShowCase(showShowcase) }
 }

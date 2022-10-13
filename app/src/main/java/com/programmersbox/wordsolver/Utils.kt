@@ -1,8 +1,14 @@
 package com.programmersbox.wordsolver
 
-import com.google.gson.Gson
-import com.google.gson.GsonBuilder
-import com.google.gson.reflect.TypeToken
+import android.content.Context
+import androidx.datastore.core.CorruptionException
+import androidx.datastore.core.DataStore
+import androidx.datastore.core.Serializer
+import androidx.datastore.dataStore
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.preferencesDataStore
+import com.google.protobuf.GeneratedMessageLite
+import com.google.protobuf.InvalidProtocolBufferException
 import io.ktor.client.*
 import io.ktor.client.call.*
 import io.ktor.client.plugins.contentnegotiation.*
@@ -10,24 +16,26 @@ import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import java.io.InputStream
+import java.io.OutputStream
 
 suspend fun getLetters() = runCatching {
     getApi<List<String>>("https://random-word-api.herokuapp.com/word?length=7").orEmpty()
 }
 
 suspend fun getAnagram(letters: String) = runCatching {
-    getApiResponse("https://danielthepope-countdown-v1.p.rapidapi.com/solve/$letters?variance=-1") {
+    getApi<List<Anagrams>>("https://danielthepope-countdown-v1.p.rapidapi.com/solve/$letters?variance=-1") {
         append("X-RapidAPI-Host", "danielthepope-countdown-v1.p.rapidapi.com")
         append("X-RapidAPI-Key", "cefe1904a6msh94a1484f93d57dbp16f734jsn098d9ecefd68")
-    }.bodyAsText().fromJson<List<Anagrams>>()
+    }.orEmpty()
 }
 
 suspend fun getWordDefinition(word: String) = runCatching {
-    getApiResponse("https://api.dictionaryapi.dev/api/v2/entries/en/$word")
-        .bodyAsText()
-        .fromJson<List<BaseDefinition>>()
-        .orEmpty()
+    getApi<List<BaseDefinition>>("https://api.dictionaryapi.dev/api/v2/entries/en/$word").orEmpty()
 }
 
 suspend inline fun <reified T> getApi(
@@ -50,25 +58,10 @@ suspend inline fun <reified T> getApi(
     return response.body<T>()
 }
 
-suspend inline fun getApiResponse(
-    url: String,
-    noinline headers: HeadersBuilder.() -> Unit = {}
-): HttpResponse = HttpClient().get(url) { headers(headers) }
+@Serializable
+data class Anagrams(val word: String?, val length: Int?, val conundrum: Boolean?)
 
-fun Any?.toJson() = Gson().toJson(this)
-
-inline fun <reified T> String?.fromJson(): T? = try {
-    GsonBuilder()
-        .setLenient()
-        .create()
-        .fromJson(this, object : TypeToken<T>() {}.type)
-} catch (e: Exception) {
-    e.printStackTrace()
-    null
-}
-
-data class Anagrams(val word: String?, val length: Number?, val conundrum: Boolean?)
-
+@Serializable
 data class BaseDefinition(
     val word: String?,
     val phonetic: String?,
@@ -77,13 +70,65 @@ data class BaseDefinition(
     val meanings: List<Meanings>?
 )
 
-data class Definitions(
-    val definition: String?,
-    val example: String?,
-    val synonyms: List<Any>?,
-    val antonyms: List<Any>?
-)
+@Serializable
+data class Definitions(val definition: String?)
 
+@Serializable
 data class Meanings(val partOfSpeech: String?, val definitions: List<Definitions>?)
 
+@Serializable
 data class Phonetics(val text: String?, val audio: String?)
+
+val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "settings")
+
+val Context.savedData: DataStore<SavedData> by dataStore(
+    fileName = "SavedData",
+    serializer = SavedDataSerializer
+)
+
+val Context.settings: DataStore<Settings> by dataStore(
+    fileName = "Settings",
+    serializer = SettingsSerializer
+)
+
+object SavedDataSerializer : GenericSerializer<SavedData, SavedData.Builder> {
+    override val defaultValue: SavedData get() = SavedData.getDefaultInstance()
+    override val parseFrom: (input: InputStream) -> SavedData get() = SavedData::parseFrom
+}
+
+object SettingsSerializer : GenericSerializer<Settings, Settings.Builder> {
+    override val defaultValue: Settings
+        get() = Settings.getDefaultInstance()
+            .toBuilder()
+            .setColumnAmount(3)
+            .setShowShowCase(true)
+            .build()
+    override val parseFrom: (input: InputStream) -> Settings get() = Settings::parseFrom
+}
+
+suspend fun <DS : DataStore<MessageType>, MessageType : GeneratedMessageLite<MessageType, BuilderType>, BuilderType : GeneratedMessageLite.Builder<MessageType, BuilderType>> DS.update(
+    statsBuilder: suspend BuilderType.() -> BuilderType
+) = updateData { statsBuilder(it.toBuilder()).build() }
+
+interface GenericSerializer<MessageType, BuilderType> : Serializer<MessageType>
+        where MessageType : GeneratedMessageLite<MessageType, BuilderType>,
+              BuilderType : GeneratedMessageLite.Builder<MessageType, BuilderType> {
+
+    /**
+     * Call MessageType::parseFrom here!
+     */
+    val parseFrom: (input: InputStream) -> MessageType
+
+    override suspend fun readFrom(input: InputStream): MessageType =
+        withContext(Dispatchers.IO) {
+            try {
+                parseFrom(input)
+            } catch (exception: InvalidProtocolBufferException) {
+                throw CorruptionException("Cannot read proto.", exception)
+            }
+        }
+
+    override suspend fun writeTo(t: MessageType, output: OutputStream) =
+        withContext(Dispatchers.IO) { t.writeTo(output) }
+}
+

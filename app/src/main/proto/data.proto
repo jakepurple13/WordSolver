@@ -1,0 +1,20 @@
+syntax = "proto3";
+
+option java_package = "com.programmersbox.wordsolver";
+option java_multiple_files = true;
+
+message SavedData {
+  repeated AnagramWrapper anagrams = 1;
+}
+
+message Settings {
+  int32 columnAmount = 1;
+  bool showShowCase = 2;
+  bool scrollToItemOnAlreadyGuessed = 3;
+}
+
+message AnagramWrapper {
+  optional string word = 1;
+  optional int32 length = 2;
+  optional bool conundrum = 3;
+}
