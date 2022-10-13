@@ -28,6 +28,7 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -364,7 +365,18 @@ fun SettingsDrawer(vm: SettingsViewModel, wordViewModel: WordViewModel, drawerSt
                     scrollBehavior = scrollBehavior
                 )
             },
-            modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection)
+            modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
+            bottomBar = {
+                BottomAppBar {
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(stringResource(id = R.string.app_name))
+                        Text(appVersion())
+                    }
+                }
+            }
         ) { padding ->
             LazyColumn(
                 modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding),

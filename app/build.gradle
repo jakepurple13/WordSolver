@@ -36,6 +36,18 @@ android {
             initWith debug
             matchingFallbacks = ['debug', 'release']
             applicationIdSuffix = ".lanVersion"
+            versionNameSuffix = "-lanVersion"
+        }
+    }
+
+    easylauncher {
+        defaultFlavorNaming true
+        buildTypes {
+            beta { filters chromeLike(gravity: "Top") }
+            lanVersion {
+                filters chromeLike(gravity: "Top")
+                enable true
+            }
         }
     }
 
@@ -60,7 +72,6 @@ android {
 }
 
 dependencies {
-
     implementation 'androidx.core:core-ktx:1.9.0'
     implementation 'androidx.lifecycle:lifecycle-runtime-ktx:2.5.1'
     implementation 'androidx.activity:activity-compose:1.6.0'
@@ -93,7 +104,6 @@ dependencies {
 
     implementation "com.google.protobuf:protobuf-javalite:$protobuf_version"
     implementation "com.google.protobuf:protobuf-kotlin-lite:$protobuf_version"
-
 }
 
 protobuf {
@@ -131,15 +141,4 @@ static def getIP() {
         }
     }
     return (result != null ? result : InetAddress.getLocalHost()).getHostAddress()
-}
-
-easylauncher {
-    defaultFlavorNaming true
-    buildTypes {
-        beta { filters chromeLike(gravity: "Top") }
-        lanVersion {
-            filters chromeLike(gravity: "Top")
-            enable true
-        }
-    }
 }
