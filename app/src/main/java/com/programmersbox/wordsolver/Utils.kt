@@ -157,7 +157,12 @@ class LanVersion : NetworkRetrieving {
                 onSuccess = { word ->
                     println(word)
                     if (word != null) {
-                        savedDataHandling.updateMainLetters(word.word)
+                        savedDataHandling.updateMainLetters(
+                            word.word
+                                .toList()
+                                .shuffled()
+                                .joinToString("")
+                        )
                         savedDataHandling.updateAnagrams(word.anagrams.map { Anagrams(it, it.length, false) })
                     }
                 },
