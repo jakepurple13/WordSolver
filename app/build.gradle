@@ -20,6 +20,7 @@ android {
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables { useSupportLibrary true }
         buildConfigField "String", "IP4_ADDRESS", "\"http://${getIP()}:8080\""
+        buildConfigField "String", "IP4_ADDRESS_NO_PORT", "\"${getIP()}\""
     }
 
     buildTypes {
@@ -105,6 +106,11 @@ dependencies {
 
     implementation "com.google.protobuf:protobuf-javalite:$protobuf_version"
     implementation "com.google.protobuf:protobuf-kotlin-lite:$protobuf_version"
+
+    lanVersionImplementation(project(":chatfunctionality"))
+    debugImplementation(project(":chatfunctionalitynoop"))
+    releaseImplementation(project(":chatfunctionalitynoop"))
+    betaImplementation(project(":chatfunctionalitynoop"))
 }
 
 protobuf {
