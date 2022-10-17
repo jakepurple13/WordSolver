@@ -18,8 +18,8 @@ class ChatViewModel(host: String, url: String) : ViewModel() {
     private val chat = Chat(url)
 
     var text by mutableStateOf("")
-    val messages = mutableStateListOf<SendMessage>()
-    var name by mutableStateOf("")
+    val messages = mutableStateListOf<Message>()
+    var name by mutableStateOf<SetupMessage?>(null)
 
     var hasMessages by mutableStateOf(false)
 

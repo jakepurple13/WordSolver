@@ -2,6 +2,7 @@ package com.programmersbox.chatfunctionality
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -21,6 +22,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -75,7 +77,7 @@ fun ChatUi(
                     modifier = Modifier.fillMaxWidth(),
                     trailingIcon = { IconButton(onClick = vm::send) { Icon(Icons.Default.Send, null) } },
                     singleLine = true,
-                    label = { Text("You are: ${vm.name}") }
+                    label = { Text("You are: ${vm.name?.user?.name}") }
                 )
             }
         },
@@ -88,12 +90,25 @@ fun ChatUi(
             verticalArrangement = Arrangement.spacedBy(2.dp)
         ) {
             items(vm.messages) {
-                ElevatedCard {
-                    ListItem(
-                        headlineText = { Text(it.message) },
-                        overlineText = { Text(it.user.name) },
-                        supportingText = { Text(it.time) }
-                    )
+                if (it is MessageMessage) {
+                    OutlinedCard(
+                        border = if (it.user.name == vm.name?.user?.name) BorderStroke(1.dp, Emerald)
+                        else CardDefaults.outlinedCardBorder()
+                    ) {
+                        ListItem(
+                            headlineText = { Text(it.message) },
+                            overlineText = { Text(it.user.name) },
+                            supportingText = { Text(it.time) }
+                        )
+                    }
+                } else if (it is UserListMessage) {
+                    ElevatedCard {
+                        ListItem(
+                            overlineText = { Text("Current Users:") },
+                            headlineText = { Text(it.userList.joinToString(",") { it.name }) },
+                            supportingText = { Text(it.time) }
+                        )
+                    }
                 }
             }
         }
@@ -117,3 +132,7 @@ fun ChatIcon(
         )
     ) { Icon(Icons.Default.Chat, null) }
 }
+
+val Emerald = Color(0xFF2ecc71)
+val Sunflower = Color(0xFFf1c40f)
+val Alizarin = Color(0xFFe74c3c)

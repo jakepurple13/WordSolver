@@ -9,22 +9,46 @@ import io.ktor.serialization.kotlinx.*
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.websocket.*
 import kotlinx.coroutines.flow.*
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
 import java.text.SimpleDateFormat
 
 enum class MessageType {
-    MESSAGE, SERVER, INFO, TYPING_INDICATOR
+    MESSAGE, SERVER, INFO, TYPING_INDICATOR, SETUP
 }
 
 @Serializable
-data class SendMessage(
-    val user: ChatUser,
-    val message: String,
-    val type: MessageType?,
+sealed class Message {
+    abstract val user: ChatUser
+    abstract val messageType: MessageType
     val time: String = SimpleDateFormat("MM/dd hh:mm a").format(System.currentTimeMillis())
-)
+}
+
+@Serializable
+@SerialName("MessageMessage")
+data class MessageMessage(
+    override val user: ChatUser,
+    val message: String,
+    override val messageType: MessageType = MessageType.MESSAGE
+) : Message()
+
+@Serializable
+@SerialName("SetupMessage")
+data class SetupMessage(
+    override val user: ChatUser,
+    val userColor: Int,
+    override val messageType: MessageType = MessageType.SETUP
+) : Message()
+
+@Serializable
+@SerialName("UserListMessage")
+data class UserListMessage(
+    override val user: ChatUser,
+    override val messageType: MessageType = MessageType.INFO,
+    val userList: List<ChatUser>
+) : Message()
 
 @Serializable
 data class ChatUser(val name: String)
@@ -54,9 +78,9 @@ class Chat(private val url: String) {
         }
     }
 
-    val messages = MutableSharedFlow<SendMessage>()
+    val messages = MutableSharedFlow<Message>()
 
-    val name = MutableStateFlow<String?>(null)
+    val name = MutableStateFlow<SetupMessage?>(null)
 
     suspend fun init(host: String) {
         try {
@@ -66,16 +90,25 @@ class Chat(private val url: String) {
                     .filterIsInstance<Frame.Text>()
                     .map { it.readText() }
                     .map { text ->
-                        if (name.value == null) name.emit(text)
                         println(text)
                         try {
-                            json.decodeFromString<SendMessage>(text)
+                            json.decodeFromString<Message>(text)
                         } catch (e: Exception) {
-                            null
+                            try {
+                                json.decodeFromString<SetupMessage>(text)
+                            } catch (_: Exception) {
+                                null
+                            }
                         }
                     }
                     .filterNotNull()
-                    .onEach { messages.emit(it) }
+                    .onEach {
+                        when (it) {
+                            is MessageMessage -> messages.emit(it)
+                            is SetupMessage -> name.emit(it)
+                            is UserListMessage -> messages.emit(it)
+                        }
+                    }
                     .collect()
             }
         } catch (_: Exception) {
@@ -85,7 +118,7 @@ class Chat(private val url: String) {
 
     suspend fun sendMessage(message: String) {
         client.post("$url/anagramerMessage") {
-            setBody(PostMessage(name.value.orEmpty(), message))
+            setBody(PostMessage(name.value?.user?.name.orEmpty(), message))
             contentType(ContentType.Application.Json)
         }
     }
