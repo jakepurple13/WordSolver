@@ -1,5 +1,6 @@
 package com.programmersbox.chatfunctionality
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -23,7 +24,6 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.collect
-import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 
@@ -37,12 +37,16 @@ fun ChatUi(
 ) {
     LaunchedEffect(bottomSheetState) {
         snapshotFlow { bottomSheetState.currentValue }
-            .filter { it == ModalBottomSheetValue.Expanded }
             .onEach { vm.hasMessages = false }
             .collect()
     }
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
     val scope = rememberCoroutineScope()
+
+    BackHandler(bottomSheetState.isVisible) {
+        scope.launch { bottomSheetState.hide() }
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -97,7 +101,7 @@ fun ChatIcon(
         onClick = { scope.launch { chatState.show() } },
         colors = IconButtonDefaults.filledTonalIconButtonColors(
             containerColor = animateColorAsState(
-                if (chatViewModel.hasMessages) MaterialTheme.colorScheme.error
+                if (chatViewModel.hasMessages && chatState.currentValue != ModalBottomSheetValue.Expanded) MaterialTheme.colorScheme.error
                 else MaterialTheme.colorScheme.secondaryContainer
             ).value
         )

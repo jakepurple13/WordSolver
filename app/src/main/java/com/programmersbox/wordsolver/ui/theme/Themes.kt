@@ -95,7 +95,6 @@ private val LightColors = lightColorScheme(
     surfaceTint = md_theme_light_surfaceTint,
 )
 
-
 private val DarkColors = darkColorScheme(
     primary = md_theme_dark_primary,
     onPrimary = md_theme_dark_onPrimary,
