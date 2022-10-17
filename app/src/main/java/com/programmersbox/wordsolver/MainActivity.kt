@@ -403,18 +403,18 @@ fun IntroShowCaseScope.BottomBar(
                 ) { Icon(Icons.Default.Undo, null) }
 
                 FilledTonalIconButton(
-                    onClick = vm::shuffle,
-                    modifier = Modifier.introShowCaseTarget(0, style = introShowCaseStyle()) {
-                        Text("Shuffle Letters")
-                    }
-                ) { Icon(Icons.Default.Shuffle, null) }
-
-                FilledTonalIconButton(
                     onClick = { vm.wordGuess = "" },
                     modifier = Modifier.introShowCaseTarget(1, style = introShowCaseStyle()) {
                         Text("Clear Current Hand")
                     }
                 ) { Icon(Icons.Default.Clear, null, tint = Alizarin) }
+
+                FilledTonalIconButton(
+                    onClick = vm::shuffle,
+                    modifier = Modifier.introShowCaseTarget(0, style = introShowCaseStyle()) {
+                        Text("Shuffle Letters")
+                    }
+                ) { Icon(Icons.Default.Shuffle, null) }
 
                 ChatIcon(chatViewModel = chatViewModel, chatState = chatSheetState, scope = scope)
 
