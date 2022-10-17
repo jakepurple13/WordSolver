@@ -37,7 +37,29 @@ enum class Theme(private val light: ColorScheme, private val dark: ColorScheme) 
             }
         }
     },
-    Blue(LightColors, DarkColors);
+    Blue(LightColors, DarkColors),
+    /*DarkBlue(
+        lightColorScheme(
+            primary = Color(0xff005db6),
+            secondary = Color(0xff005db6),
+            tertiary = Color(0xff555f71),
+            background = Color(0xffd6e3ff),
+            surface = Color(0xffd9e3f9),
+            onPrimary = Color.White,
+            onSurface = Color.Black,
+            onBackground = Color.Black,
+        ),
+        darkColorScheme(
+            primary = Color(0xffa9c7ff),
+            secondary = Color(0xffa9c7ff),
+            tertiary = Color(0xffbdc7dc),
+            background = Color(0xff00468b),
+            surface = Color(0xff3e4758),
+            onPrimary = Color.Black,
+            onSurface = Color.White,
+            onBackground = Color.White,
+        )
+    )*/;
 
     open fun getTheme(darkTheme: Boolean, context: Context, dynamicColor: Boolean): ColorScheme =
         if (darkTheme) dark else light

@@ -4,8 +4,10 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.ModalBottomSheetState
 import androidx.compose.material.ModalBottomSheetValue
@@ -35,13 +37,19 @@ fun ChatUi(
     vm: ChatViewModel = viewModel { ChatViewModel(host, url) },
     bottomSheetState: ModalBottomSheetState
 ) {
+    val listState = rememberLazyListState()
+    val scope = rememberCoroutineScope()
     LaunchedEffect(bottomSheetState) {
         snapshotFlow { bottomSheetState.currentValue }
             .onEach { vm.hasMessages = false }
             .collect()
     }
+
+    LaunchedEffect(vm.messages.size, bottomSheetState) {
+        scope.launch { listState.animateScrollToItem(vm.messages.lastIndex.coerceAtLeast(0)) }
+    }
+
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
-    val scope = rememberCoroutineScope()
 
     BackHandler(bottomSheetState.isVisible) {
         scope.launch { bottomSheetState.hide() }
@@ -74,7 +82,9 @@ fun ChatUi(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection)
     ) { paddingValues ->
         LazyColumn(
+            state = listState,
             contentPadding = paddingValues,
+            modifier = Modifier.padding(vertical = 2.dp),
             verticalArrangement = Arrangement.spacedBy(2.dp)
         ) {
             items(vm.messages) {
