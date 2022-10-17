@@ -59,23 +59,27 @@ class Chat(private val url: String) {
     val name = MutableStateFlow<String?>(null)
 
     suspend fun init(host: String) {
-        client.ws(method = HttpMethod.Get, host = host, port = 8080, path = "/anagramerChat") {
-            incoming
-                .consumeAsFlow()
-                .filterIsInstance<Frame.Text>()
-                .map { it.readText() }
-                .map { text ->
-                    if (name.value == null) name.emit(text)
-                    println(text)
-                    try {
-                        json.decodeFromString<SendMessage>(text)
-                    } catch (e: Exception) {
-                        null
+        try {
+            client.ws(method = HttpMethod.Get, host = host, port = 8080, path = "/anagramerChat") {
+                incoming
+                    .consumeAsFlow()
+                    .filterIsInstance<Frame.Text>()
+                    .map { it.readText() }
+                    .map { text ->
+                        if (name.value == null) name.emit(text)
+                        println(text)
+                        try {
+                            json.decodeFromString<SendMessage>(text)
+                        } catch (e: Exception) {
+                            null
+                        }
                     }
-                }
-                .filterNotNull()
-                .onEach { messages.emit(it) }
-                .collect()
+                    .filterNotNull()
+                    .onEach { messages.emit(it) }
+                    .collect()
+            }
+        } catch (_: Exception) {
+
         }
     }
 

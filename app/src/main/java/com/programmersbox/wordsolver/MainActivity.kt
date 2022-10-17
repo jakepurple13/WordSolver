@@ -22,8 +22,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Badge
-import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DrawerState
 import androidx.compose.material3.DrawerValue
@@ -58,6 +56,7 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.canopas.lib.showcase.IntroShowCaseScaffold
 import com.canopas.lib.showcase.IntroShowCaseScope
+import com.programmersbox.chatfunctionality.ChatIcon
 import com.programmersbox.chatfunctionality.ChatUi
 import com.programmersbox.chatfunctionality.ChatViewModel
 import com.programmersbox.wordsolver.ui.theme.*
@@ -214,7 +213,14 @@ fun IncludeChat(
     if (BuildConfig.BUILD_TYPE == "lanVersion") {
         ModalBottomSheetLayout(
             sheetState = chatSheetState,
-            sheetContent = { ChatUi(BuildConfig.IP4_ADDRESS_NO_PORT, BuildConfig.IP4_ADDRESS, chatViewModel) },
+            sheetContent = {
+                ChatUi(
+                    BuildConfig.IP4_ADDRESS_NO_PORT,
+                    BuildConfig.IP4_ADDRESS,
+                    chatViewModel,
+                    chatSheetState
+                )
+            },
             sheetBackgroundColor = MaterialTheme.colorScheme.background,
             sheetContentColor = MaterialTheme.colorScheme.onBackground,
             content = content
@@ -410,19 +416,7 @@ fun IntroShowCaseScope.BottomBar(
                     }
                 ) { Icon(Icons.Default.Clear, null, tint = Alizarin) }
 
-                if (BuildConfig.BUILD_TYPE == "lanVersion") {
-                    BadgedBox(
-                        badge = {
-                            if (chatViewModel.hasMessages) {
-                                Badge()
-                            }
-                        }
-                    ) {
-                        FilledTonalIconButton(
-                            onClick = { scope.launch { chatSheetState.show() } },
-                        ) { Icon(Icons.Default.Chat, null) }
-                    }
-                }
+                ChatIcon(chatViewModel = chatViewModel, chatState = chatSheetState, scope = scope)
 
                 FilledTonalButton(
                     onClick = {
