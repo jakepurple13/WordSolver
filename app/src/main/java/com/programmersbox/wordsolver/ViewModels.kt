@@ -8,6 +8,7 @@ import androidx.compose.runtime.setValue
 import androidx.datastore.preferences.core.*
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.programmersbox.wordsolver.ui.theme.Theme
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -237,18 +238,21 @@ class SettingsViewModel(context: Context) : ViewModel() {
     val showcase by lazy { settingsHandling.showShowcase }
     var scrollToItem by mutableStateOf(false)
     var columnCount by mutableStateOf(3)
+    val systemThemeMode by lazy { settingsHandling.systemThemeMode }
+    val themeIndex by lazy {
+        settingsHandling.themeIndex.map { index -> Theme.values().find { it.ordinal == index } ?: Theme.Default }
+    }
+
+    val themeIndexes by lazy { settingsHandling.themeIndex }
 
     init {
-        viewModelScope.launch {
-            settingsHandling.columnAmount
-                .onEach { columnCount = it }
-                .collect()
-        }
-        viewModelScope.launch {
-            settingsHandling.scrollToItem
-                .onEach { scrollToItem = it }
-                .collect()
-        }
+        settingsHandling.columnAmount
+            .onEach { columnCount = it }
+            .launchIn(viewModelScope)
+
+        settingsHandling.scrollToItem
+            .onEach { scrollToItem = it }
+            .launchIn(viewModelScope)
     }
 
     fun updateScrollToItem(scrollToItem: Boolean) {
@@ -266,6 +270,9 @@ class SettingsViewModel(context: Context) : ViewModel() {
     fun showShowcase() {
         viewModelScope.launch { settingsHandling.updateShowcase(true) }
     }
+
+    fun setTheme(index: Int) = viewModelScope.launch { settingsHandling.setThemeIndex(index) }
+    fun setSystemThemeMode(mode: SystemThemeMode) = viewModelScope.launch { settingsHandling.setSystemThemeMode(mode) }
 }
 
 class SavedDataHandling(context: Context) {
@@ -339,4 +346,10 @@ class SettingsHandling(context: Context) {
 
     val showShowcase = all.map { it.showShowCase }
     suspend fun updateShowcase(showShowcase: Boolean) = preferences.update { setShowShowCase(showShowcase) }
+
+    val themeIndex = all.map { it.themeIndex }
+    suspend fun setThemeIndex(index: Int) = preferences.update { setThemeIndex(index) }
+
+    val systemThemeMode = all.map { it.mode }
+    suspend fun setSystemThemeMode(mode: SystemThemeMode) = preferences.update { setMode(mode) }
 }

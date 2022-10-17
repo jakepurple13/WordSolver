@@ -11,13 +11,18 @@ import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.animateIntAsState
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.*
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.ExperimentalMaterialApi
+import androidx.compose.material.ModalBottomSheetLayout
+import androidx.compose.material.ModalBottomSheetValue
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.rememberModalBottomSheetState
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -28,7 +33,6 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -40,32 +44,53 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.canopas.lib.showcase.IntroShowCaseScaffold
 import com.canopas.lib.showcase.IntroShowCaseScope
-import com.programmersbox.wordsolver.ui.theme.Alizarin
-import com.programmersbox.wordsolver.ui.theme.Emerald
-import com.programmersbox.wordsolver.ui.theme.WordSolverTheme
-import com.programmersbox.wordsolver.ui.theme.introShowCaseStyle
+import com.programmersbox.wordsolver.ui.theme.*
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import java.util.*
-import kotlin.math.roundToInt
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         WindowCompat.setDecorFitsSystemWindows(window, false)
         setContent {
-            WordSolverTheme {
+            val context = LocalContext.current
+            val settingsVm = viewModel { SettingsViewModel(context) }
+            val defaultTheme = remember {
+                runBlocking {
+                    Theme.values().find { it.ordinal == settingsVm.themeIndex.firstOrNull()?.ordinal } ?: Theme.Default
+                }
+            }
+
+            val defaultMode = remember {
+                runBlocking { settingsVm.systemThemeMode.firstOrNull() ?: SystemThemeMode.FollowSystem }
+            }
+            val darkTheme by settingsVm.systemThemeMode.collectAsState(defaultMode)
+
+            val isSystemInDarkMode = isSystemInDarkTheme()
+            val isDarkTheme by remember {
+                derivedStateOf {
+                    darkTheme == SystemThemeMode.Night || (isSystemInDarkMode && darkTheme == SystemThemeMode.FollowSystem)
+                }
+            }
+
+            WordSolverTheme(
+                darkTheme = isDarkTheme,
+                colorScheme = settingsVm.themeIndex.collectAsState(initial = defaultTheme).value
+            ) {
                 // A surface container using the 'background' color from the theme
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
-                ) { WordUi() }
+                ) { WordUi(settingsVm = settingsVm) }
             }
         }
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterialApi::class)
 @Composable
 fun WordUi(
     context: Context = LocalContext.current,
@@ -79,6 +104,7 @@ fun WordUi(
 
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val settingsDrawerState = rememberDrawerState(DrawerValue.Closed)
+    val bottomSheetState = rememberModalBottomSheetState(ModalBottomSheetValue.Hidden, skipHalfExpanded = true)
     val snackbarHostState = remember { SnackbarHostState() }
     val gridState = rememberLazyGridState()
 
@@ -87,55 +113,69 @@ fun WordUi(
 
     WordDialogs(vm)
 
-    ModalNavigationDrawer(
-        drawerContent = { SettingsDrawer(vm = settingsVm, wordViewModel = vm, drawerState = settingsDrawerState) },
-        drawerState = settingsDrawerState,
-        gesturesEnabled = settingsDrawerState.isOpen
+    ModalBottomSheetLayout(
+        sheetState = bottomSheetState,
+        sheetContent = { ThemeChooser(settingsVm) },
+        sheetBackgroundColor = MaterialTheme.colorScheme.background,
+        sheetContentColor = MaterialTheme.colorScheme.onBackground
     ) {
         ModalNavigationDrawer(
-            drawerContent = { DefinitionDrawer(vm) },
-            drawerState = drawerState,
-            gesturesEnabled = vm.definition != null
+            drawerContent = {
+                SettingsDrawer(
+                    vm = settingsVm,
+                    wordViewModel = vm,
+                    drawerState = settingsDrawerState,
+                    bottomSheetState = bottomSheetState
+                )
+            },
+            drawerState = settingsDrawerState,
+            gesturesEnabled = settingsDrawerState.isOpen
         ) {
-            IntroShowCaseScaffold(
-                showIntroShowCase = settingsVm.showcase.collectAsState(initial = false).value,
-                onShowCaseCompleted = { settingsVm.finishShowcase() },
+            ModalNavigationDrawer(
+                drawerContent = { DefinitionDrawer(vm) },
+                drawerState = drawerState,
+                gesturesEnabled = vm.definition != null
             ) {
-                val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
-                Scaffold(
-                    topBar = {
-                        TopAppBar(
-                            title = { Text("Guess the Words") },
-                            actions = {
-                                Text("${vm.wordGuesses.size}/${vm.anagramWords.size}")
-                                TextButton(
-                                    onClick = { vm.finishGame = true },
-                                    enabled = !vm.finishedGame
-                                ) { Text("Finish") }
-                                TextButton(onClick = { vm.shouldStartNewGame = true }) { Text("New Game") }
-                            },
-                            scrollBehavior = scrollBehavior
-                        )
-                    },
-                    bottomBar = {
-                        BottomBar(
+                IntroShowCaseScaffold(
+                    showIntroShowCase = settingsVm.showcase.collectAsState(initial = false).value,
+                    onShowCaseCompleted = { settingsVm.finishShowcase() },
+                ) {
+                    val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
+                    Scaffold(
+                        topBar = {
+                            TopAppBar(
+                                title = { Text("Guess the Words") },
+                                actions = {
+                                    Text("${vm.wordGuesses.size}/${vm.anagramWords.size}")
+                                    TextButton(
+                                        onClick = { vm.finishGame = true },
+                                        enabled = !vm.finishedGame
+                                    ) { Text("Finish") }
+                                    TextButton(onClick = { vm.shouldStartNewGame = true }) { Text("New Game") }
+                                },
+                                scrollBehavior = scrollBehavior
+                            )
+                        },
+                        bottomBar = {
+                            BottomBar(
+                                vm = vm,
+                                settingsVm = settingsVm,
+                                gridState = gridState,
+                                snackbarHostState = snackbarHostState
+                            )
+                        },
+                        snackbarHost = { SnackbarHost(snackbarHostState) },
+                        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection)
+                    ) { padding ->
+                        WordContent(
+                            padding = padding,
                             vm = vm,
                             settingsVm = settingsVm,
                             gridState = gridState,
-                            snackbarHostState = snackbarHostState
+                            settingsDrawerState = settingsDrawerState,
+                            drawerState = drawerState
                         )
-                    },
-                    snackbarHost = { SnackbarHost(snackbarHostState) },
-                    modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection)
-                ) { padding ->
-                    WordContent(
-                        padding = padding,
-                        vm = vm,
-                        settingsVm = settingsVm,
-                        gridState = gridState,
-                        settingsDrawerState = settingsDrawerState,
-                        drawerState = drawerState
-                    )
+                    }
                 }
             }
         }
@@ -257,33 +297,11 @@ fun IntroShowCaseScope.BottomBar(
     CustomBottomAppBar {
         Column {
             Row(
-                horizontalArrangement = Arrangement.SpaceBetween,
-                modifier = Modifier
-                    .animateContentSize()
-                    .fillMaxWidth()
-            ) {
-                Row {
-                    vm.mainLetters.forEach {
-                        OutlinedIconButton(
-                            onClick = { vm.updateGuess("${vm.wordGuess}$it") },
-                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = .5f)),
-                        ) { Text(it.uppercase()) }
-                    }
-                }
-
-                FilledTonalIconButton(
-                    onClick = vm::shuffle,
-                    modifier = Modifier.introShowCaseTarget(0, style = introShowCaseStyle()) {
-                        Text("Shuffle Letters")
-                    }
-                ) { Icon(Icons.Default.Shuffle, null) }
-            }
-
-            Row(
-                horizontalArrangement = Arrangement.SpaceBetween,
+                horizontalArrangement = Arrangement.Start,
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Row(
+                    horizontalArrangement = Arrangement.spacedBy(2.dp),
                     modifier = Modifier
                         .height(48.dp)
                         .animateContentSize()
@@ -291,17 +309,32 @@ fun IntroShowCaseScope.BottomBar(
                     vm.wordGuess.forEachIndexed { index, c ->
                         OutlinedIconButton(
                             onClick = { vm.updateGuess(vm.wordGuess.removeRange(index, index + 1)) },
-                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary)
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary),
                         ) { Text(c.uppercase()) }
                     }
                 }
+            }
 
-                FilledTonalIconButton(
-                    onClick = { vm.wordGuess = "" },
-                    modifier = Modifier.introShowCaseTarget(1, style = introShowCaseStyle()) {
-                        Text("Clear Current Hand")
-                    }
-                ) { Icon(Icons.Default.Clear, null, tint = Alizarin) }
+            Row(
+                horizontalArrangement = Arrangement.SpaceEvenly,
+                modifier = Modifier
+                    .height(48.dp)
+                    .animateContentSize()
+                    .fillMaxWidth()
+            ) {
+                val cornerSize = 16.dp
+                vm.mainLetters.forEachIndexed { index, it ->
+                    OutlinedIconButton(
+                        onClick = { vm.updateGuess("${vm.wordGuess}$it") },
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary),
+                        modifier = Modifier.weight(1f),
+                        shape = when (index) {
+                            0 -> RoundedCornerShape(topStart = cornerSize, bottomStart = cornerSize)
+                            vm.mainLetters.lastIndex -> RoundedCornerShape(topEnd = cornerSize, bottomEnd = cornerSize)
+                            else -> RectangleShape
+                        }
+                    ) { Text(it.uppercase()) }
+                }
             }
 
             Row(
@@ -317,6 +350,20 @@ fun IntroShowCaseScope.BottomBar(
                         Text("Bring back the last correctly guessed word")
                     }
                 ) { Icon(Icons.Default.Undo, null) }
+
+                FilledTonalIconButton(
+                    onClick = vm::shuffle,
+                    modifier = Modifier.introShowCaseTarget(0, style = introShowCaseStyle()) {
+                        Text("Shuffle Letters")
+                    }
+                ) { Icon(Icons.Default.Shuffle, null) }
+
+                FilledTonalIconButton(
+                    onClick = { vm.wordGuess = "" },
+                    modifier = Modifier.introShowCaseTarget(1, style = introShowCaseStyle()) {
+                        Text("Clear Current Hand")
+                    }
+                ) { Icon(Icons.Default.Clear, null, tint = Alizarin) }
 
                 FilledTonalButton(
                     onClick = {
@@ -341,132 +388,6 @@ fun IntroShowCaseScope.BottomBar(
                         "ENTER",
                         color = if (vm.wordGuess.isNotEmpty()) Emerald else LocalContentColor.current
                     )
-                }
-            }
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun SettingsDrawer(vm: SettingsViewModel, wordViewModel: WordViewModel, drawerState: DrawerState) {
-    val scope = rememberCoroutineScope()
-    val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
-    ModalDrawerSheet {
-        Scaffold(
-            topBar = {
-                TopAppBar(
-                    title = { Text("Settings") },
-                    actions = {
-                        IconButton(
-                            onClick = { scope.launch { drawerState.close() } }
-                        ) { Icon(Icons.Default.Close, null) }
-                    },
-                    scrollBehavior = scrollBehavior
-                )
-            },
-            modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
-            bottomBar = {
-                BottomAppBar {
-                    Column(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Text(stringResource(id = R.string.app_name))
-                        Text(appVersion())
-                    }
-                }
-            }
-        ) { padding ->
-            LazyColumn(
-                modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding),
-                contentPadding = padding,
-                verticalArrangement = Arrangement.spacedBy(4.dp)
-            ) {
-                item {
-                    var columnCount by remember(vm.columnCount) { mutableStateOf(vm.columnCount.toFloat()) }
-                    NavigationDrawerItem(
-                        label = {
-                            ListItem(
-                                headlineText = { Text("Column Count") },
-                                supportingText = { Text("Choose how many columns there are. Click here to reset to default (3).") },
-                                colors = ListItemDefaults.colors(containerColor = Color.Transparent)
-                            )
-                        },
-                        selected = true,
-                        onClick = { vm.updateColumnCount(3) },
-                        badge = { Text(columnCount.roundToInt().toString()) },
-                    )
-
-                    Slider(
-                        value = columnCount,
-                        onValueChange = { columnCount = it },
-                        onValueChangeFinished = { vm.updateColumnCount(columnCount.roundToInt()) },
-                        valueRange = 1f..5f
-                    )
-                }
-
-                item { Divider() }
-
-                item {
-                    NavigationDrawerItem(
-                        label = {
-                            ListItem(
-                                headlineText = { Text("Show Tutorial") },
-                                supportingText = { Text("It might only come up on next app open") },
-                                colors = ListItemDefaults.colors(containerColor = Color.Transparent)
-                            )
-                        },
-                        selected = true,
-                        onClick = {
-                            scope.launch { drawerState.close() }
-                            vm.showShowcase()
-                        },
-                    )
-                }
-
-                if (BuildConfig.DEBUG) {
-                    item { Divider() }
-
-                    item {
-                        NavigationDrawerItem(
-                            label = {
-                                ListItem(
-                                    headlineText = { Text("Scroll to Item on Already Guessed") },
-                                    supportingText = {
-                                        Text("Enable if you want to be scrolled to where in the grid the already guessed word is.")
-                                    },
-                                    colors = ListItemDefaults.colors(containerColor = Color.Transparent)
-                                )
-                            },
-                            selected = true,
-                            onClick = { vm.updateScrollToItem(!vm.scrollToItem) },
-                            badge = {
-                                Switch(
-                                    checked = vm.scrollToItem,
-                                    onCheckedChange = { vm.updateScrollToItem(it) }
-                                )
-                            },
-                            modifier = Modifier.height(150.dp),
-                            shape = RoundedCornerShape(25)
-                        )
-                    }
-                }
-
-                if (BuildConfig.DEBUG) {
-                    item {
-                        NavigationDrawerItem(
-                            label = {
-                                ListItem(
-                                    headlineText = { Text("Win Game") },
-                                    overlineText = { Text("Cheat") },
-                                    colors = ListItemDefaults.colors(containerColor = Color.Transparent)
-                                )
-                            },
-                            selected = true,
-                            onClick = wordViewModel::cheatGame
-                        )
-                    }
                 }
             }
         }
