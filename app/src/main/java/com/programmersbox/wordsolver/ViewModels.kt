@@ -76,36 +76,24 @@ class WordViewModel(context: Context) : ViewModel() {
     }
 
     init {
-        viewModelScope.launch {
-            savedDataHandling.mainLetters
-                .onEach { mainLetters = it }
-                .collect()
-        }
-        viewModelScope.launch {
-            savedDataHandling.anagrams
-                .onEach { anagrams = it }
-                .collect()
-        }
-        viewModelScope.launch {
-            savedDataHandling.wordGuesses
-                .onEach { wordGuesses = it }
-                .collect()
-        }
-        viewModelScope.launch {
-            savedDataHandling.hints
-                .onEach { hints = it }
-                .collect()
-        }
-        viewModelScope.launch {
-            savedDataHandling.hintList
-                .onEach { hintList = it }
-                .collect()
-        }
-        viewModelScope.launch {
-            savedDataHandling.usedHint
-                .onEach { usedHint = it }
-                .collect()
-        }
+        savedDataHandling.mainLetters
+            .onEach { mainLetters = it }
+            .launchIn(viewModelScope)
+        savedDataHandling.anagrams
+            .onEach { anagrams = it }
+            .launchIn(viewModelScope)
+        savedDataHandling.wordGuesses
+            .onEach { wordGuesses = it }
+            .launchIn(viewModelScope)
+        savedDataHandling.hints
+            .onEach { hints = it }
+            .launchIn(viewModelScope)
+        savedDataHandling.hintList
+            .onEach { hintList = it }
+            .launchIn(viewModelScope)
+        savedDataHandling.usedHint
+            .onEach { usedHint = it }
+            .launchIn(viewModelScope)
         viewModelScope.launch {
             if (!savedDataHandling.hasSavedData()) {
                 getWord()
@@ -282,7 +270,7 @@ class SavedDataHandling(context: Context) {
     private val all: Flow<SavedData> get() = preferences.data
 
     companion object {
-        private val MAIN_LETTERS = stringPreferencesKey("main_word")
+        val MAIN_LETTERS = stringPreferencesKey("main_word")
         private val WORD_GUESSES = stringSetPreferencesKey("word_guesses")
         private val HINTS = intPreferencesKey("hints")
         private val HINT_LIST = stringSetPreferencesKey("hint_list")
