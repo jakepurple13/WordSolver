@@ -16,3 +16,4 @@ rootProject.name = "WordSolver"
 include ':app'
 include ':chatfunctionality'
 include ':chatfunctionalitynoop'
+include ':wordoftheday'

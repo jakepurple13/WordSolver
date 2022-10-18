@@ -13,6 +13,7 @@
             <option value="$PROJECT_DIR$/app" />
             <option value="$PROJECT_DIR$/chatfunctionality" />
             <option value="$PROJECT_DIR$/chatfunctionalitynoop" />
+            <option value="$PROJECT_DIR$/wordoftheday" />
           </set>
         </option>
       </GradleProjectSettings>
