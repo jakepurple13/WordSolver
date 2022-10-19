@@ -70,6 +70,9 @@ dependencies {
     debugImplementation "androidx.compose.ui:ui-tooling:$compose_version"
     debugImplementation "androidx.compose.ui:ui-test-manifest:$compose_version"
 
+    implementation "androidx.datastore:datastore:1.0.0"
+    implementation "androidx.datastore:datastore-preferences:1.0.0"
+
     implementation "io.ktor:ktor-client-core:2.1.2"
     implementation "io.ktor:ktor-client-cio:2.1.2"
     implementation "io.ktor:ktor-client-content-negotiation:2.1.2"

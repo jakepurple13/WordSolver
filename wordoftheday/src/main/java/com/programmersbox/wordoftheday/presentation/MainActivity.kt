@@ -6,21 +6,24 @@
 
 package com.programmersbox.wordoftheday.presentation
 
+import android.content.Context
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Devices
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.preferencesDataStore
 import androidx.wear.compose.material.*
 import com.programmersbox.wordoftheday.BuildConfig
-import com.programmersbox.wordoftheday.R
 import com.programmersbox.wordoftheday.presentation.theme.WordSolverTheme
 import io.ktor.client.*
 import io.ktor.client.call.*
@@ -30,6 +33,8 @@ import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
+import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.flow.map
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 
@@ -42,6 +47,10 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "settings")
+val MAIN_WORD = stringPreferencesKey("main_word")
+val DEFINITION = stringPreferencesKey("definition")
+
 @Composable
 fun WearApp() {
     WordSolverTheme {
@@ -50,7 +59,9 @@ fun WearApp() {
          * see d.android.com/wear/compose.
          */
         var key by remember { mutableStateOf(0) }
-        val info by getWordOfTheDay(key)
+        val context = LocalContext.current
+        val dataStore = remember { context.dataStore }
+        val info by getWordOfTheDay(dataStore, key)
         ScalingLazyColumn(
             modifier = Modifier
                 .fillMaxSize()
@@ -75,16 +86,6 @@ fun WearApp() {
     }
 }
 
-@Composable
-fun Greeting(greetingName: String) {
-    Text(
-        modifier = Modifier.fillMaxWidth(),
-        textAlign = TextAlign.Center,
-        color = MaterialTheme.colors.primary,
-        text = stringResource(R.string.hello_world, greetingName)
-    )
-}
-
 @Preview(device = Devices.WEAR_OS_SMALL_ROUND, showSystemUi = true)
 @Composable
 fun DefaultPreview() {
@@ -92,11 +93,35 @@ fun DefaultPreview() {
 }
 
 @Composable
-fun getWordOfTheDay(vararg key: Any?) = produceState<Results<Definition>>(Results.Loading, keys = key) {
+fun getWordOfTheDay(
+    dataStore: DataStore<Preferences>,
+    vararg key: Any?
+) = produceState<Results<Definition>>(Results.Loading, keys = key) {
     value = Results.Loading
-    value = runCatching { getApi<Definition>("${BuildConfig.IP4_ADDRESS}/wordOfTheDay")!! }
+    val getFromApi: suspend () -> Definition = {
+        if (BuildConfig.BUILD_TYPE == "lanVersion") getApi<Definition>("${BuildConfig.IP4_ADDRESS}/wordOfTheDay")!!
+        else getApi<List<RandomWordApi>>("https://random-words-api.vercel.app/word/")?.first()
+            .let { Definition(it?.word.orEmpty(), it?.definition.orEmpty()) }
+    }
+    value = runCatching {
+        if (key.any { if (it is Int) it == 0 else false }) {
+            dataStore.data.map {
+                val word = it[MAIN_WORD]
+                val definition = it[DEFINITION]
+                if (word == null && definition == null) null else Definition(word!!, definition!!)
+            }.firstOrNull() ?: getFromApi()
+        } else {
+            getFromApi()
+        }
+    }
         .fold(
-            onSuccess = { Results.Success(it) },
+            onSuccess = {
+                dataStore.edit { p ->
+                    p[MAIN_WORD] = it.word
+                    p[DEFINITION] = it.definition
+                }
+                Results.Success(it)
+            },
             onFailure = { Results.Error }
         )
 }
@@ -109,6 +134,9 @@ sealed class Results<out R> {
 
 @Serializable
 data class Definition(val word: String, val definition: String)
+
+@Serializable
+data class RandomWordApi(val word: String?, val definition: String?, val pronunciation: String?)
 
 suspend inline fun <reified T> getApi(
     url: String,
