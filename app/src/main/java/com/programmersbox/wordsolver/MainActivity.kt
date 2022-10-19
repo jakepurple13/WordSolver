@@ -348,7 +348,7 @@ fun IntroShowCaseScope.BottomBar(
     CustomBottomAppBar {
         Column {
             Row(
-                horizontalArrangement = Arrangement.Start,
+                horizontalArrangement = Arrangement.SpaceBetween,
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Row(
@@ -364,6 +364,13 @@ fun IntroShowCaseScope.BottomBar(
                         ) { Text(c.uppercase()) }
                     }
                 }
+
+                FilledTonalIconButton(
+                    onClick = { vm.wordGuess = "" },
+                    modifier = Modifier.introShowCaseTarget(1, style = introShowCaseStyle()) {
+                        Text("Clear Current Hand")
+                    }
+                ) { Icon(Icons.Default.Clear, null, tint = Alizarin) }
             }
 
             Row(
@@ -401,13 +408,6 @@ fun IntroShowCaseScope.BottomBar(
                         Text("Bring back the last correctly guessed word")
                     }
                 ) { Icon(Icons.Default.Undo, null) }
-
-                FilledTonalIconButton(
-                    onClick = { vm.wordGuess = "" },
-                    modifier = Modifier.introShowCaseTarget(1, style = introShowCaseStyle()) {
-                        Text("Clear Current Hand")
-                    }
-                ) { Icon(Icons.Default.Clear, null, tint = Alizarin) }
 
                 FilledTonalIconButton(
                     onClick = vm::shuffle,
