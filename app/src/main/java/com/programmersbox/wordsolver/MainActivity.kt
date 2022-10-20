@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.*
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
@@ -385,12 +386,12 @@ fun IntroShowCaseScope.BottomBar(
                     OutlinedIconButton(
                         onClick = { vm.updateGuess("${vm.wordGuess}$it") },
                         border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary),
-                        modifier = Modifier.weight(1f),
-                        shape = when (index) {
+                        modifier = if (settingsVm.lettersMode) Modifier.weight(1f) else Modifier,
+                        shape = if (settingsVm.lettersMode) when (index) {
                             0 -> RoundedCornerShape(topStart = cornerSize, bottomStart = cornerSize)
                             vm.mainLetters.lastIndex -> RoundedCornerShape(topEnd = cornerSize, bottomEnd = cornerSize)
                             else -> RectangleShape
-                        }
+                        } else CircleShape
                     ) { Text(it.uppercase()) }
                 }
             }

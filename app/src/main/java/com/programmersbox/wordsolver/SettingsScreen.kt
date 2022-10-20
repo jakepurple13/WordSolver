@@ -119,6 +119,25 @@ fun SettingsDrawer(
                     )
                 }
 
+                item {
+                    NavigationDrawerItem(
+                        label = {
+                            ListItem(
+                                headlineText = { Text("Letters UI") },
+                                colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+                                trailingContent = {
+                                    Switch(
+                                        checked = vm.lettersMode,
+                                        onCheckedChange = { vm.setLettersMode(it) }
+                                    )
+                                }
+                            )
+                        },
+                        selected = true,
+                        onClick = { vm.setLettersMode(!vm.lettersMode) },
+                    )
+                }
+
                 if (BuildConfig.DEBUG) {
                     item { Divider() }
 

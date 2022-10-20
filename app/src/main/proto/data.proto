@@ -13,6 +13,7 @@ message Settings {
   bool scrollToItemOnAlreadyGuessed = 3;
   int32 themeIndex = 4;
   SystemThemeMode mode = 5;
+  bool lettersMode = 6;
 }
 
 message AnagramWrapper {

@@ -233,6 +233,8 @@ class SettingsViewModel(context: Context) : ViewModel() {
 
     val themeIndexes by lazy { settingsHandling.themeIndex }
 
+    var lettersMode by mutableStateOf(false)
+
     init {
         settingsHandling.columnAmount
             .onEach { columnCount = it }
@@ -240,6 +242,10 @@ class SettingsViewModel(context: Context) : ViewModel() {
 
         settingsHandling.scrollToItem
             .onEach { scrollToItem = it }
+            .launchIn(viewModelScope)
+
+        settingsHandling.lettersMode
+            .onEach { lettersMode = it }
             .launchIn(viewModelScope)
     }
 
@@ -261,6 +267,7 @@ class SettingsViewModel(context: Context) : ViewModel() {
 
     fun setTheme(index: Int) = viewModelScope.launch { settingsHandling.setThemeIndex(index) }
     fun setSystemThemeMode(mode: SystemThemeMode) = viewModelScope.launch { settingsHandling.setSystemThemeMode(mode) }
+    fun setLettersMode(mode: Boolean) = viewModelScope.launch { settingsHandling.setLettersMode(mode) }
 }
 
 class SavedDataHandling(context: Context) {
@@ -340,4 +347,7 @@ class SettingsHandling(context: Context) {
 
     val systemThemeMode = all.map { it.mode }
     suspend fun setSystemThemeMode(mode: SystemThemeMode) = preferences.update { setMode(mode) }
+
+    val lettersMode = all.map { it.lettersMode }
+    suspend fun setLettersMode(mode: Boolean) = preferences.update { setLettersMode(mode) }
 }
