@@ -10,9 +10,9 @@ import android.content.Context
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Devices
@@ -62,26 +62,32 @@ fun WearApp() {
         val context = LocalContext.current
         val dataStore = remember { context.dataStore }
         val info by getWordOfTheDay(dataStore, key)
-        ScalingLazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(MaterialTheme.colors.background),
+        val state = rememberScalingLazyListState()
+        Scaffold(
+            timeText = { TimeText(modifier = Modifier.scrollAway(state)) },
+            positionIndicator = { PositionIndicator(state) }
         ) {
-            if (info is Results.Success<Definition>) {
-                item {
-                    ListHeader {
-                        Text((info as Results.Success<Definition>).value.word)
+            ScalingLazyColumn(
+                state = state,
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier.fillMaxSize()
+            ) {
+                if (info is Results.Success<Definition>) {
+                    item {
+                        ListHeader {
+                            Text((info as Results.Success<Definition>).value.word)
+                        }
+                    }
+                    item {
+                        Text((info as Results.Success<Definition>).value.definition)
+                    }
+                } else {
+                    item {
+                        CircularProgressIndicator()
                     }
                 }
-                item {
-                    Text((info as Results.Success<Definition>).value.definition)
-                }
-            } else {
-                item {
-                    CircularProgressIndicator()
-                }
+                item { Button(onClick = { key++ }) { Text("Get New Word") } }
             }
-            item { Button(onClick = { key++ }) { Text("Get New Word") } }
         }
     }
 }
