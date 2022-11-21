@@ -1,5 +1,6 @@
 package com.programmersbox.wordsolver
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -120,21 +121,43 @@ fun SettingsDrawer(
                 }
 
                 item {
+                    val type by vm.letterType.collectAsState(initial = LetterUiType.Circle)
+                    var showDialog by remember { mutableStateOf(false) }
+
+                    if (showDialog) {
+                        AlertDialog(
+                            onDismissRequest = { showDialog = false },
+                            title = { Text("Choose a Letter Ui Type") },
+                            text = {
+                                Column {
+                                    LetterUiType.values().dropLast(1).forEach {
+                                        ListItem(
+                                            modifier = Modifier.clickable { vm.setLetterType(it) },
+                                            leadingContent = {
+                                                RadioButton(
+                                                    selected = it == type,
+                                                    onClick = { vm.setLetterType(it) }
+                                                )
+                                            },
+                                            headlineText = { Text(it.name) }
+                                        )
+                                    }
+                                }
+                            },
+                            confirmButton = { TextButton(onClick = { showDialog = false }) { Text("Done") } }
+                        )
+                    }
+
                     NavigationDrawerItem(
                         label = {
                             ListItem(
                                 headlineText = { Text("Letters UI") },
                                 colors = ListItemDefaults.colors(containerColor = Color.Transparent),
-                                trailingContent = {
-                                    Switch(
-                                        checked = vm.lettersMode,
-                                        onCheckedChange = { vm.setLettersMode(it) }
-                                    )
-                                }
+                                trailingContent = { Text(type.name) }
                             )
                         },
                         selected = true,
-                        onClick = { vm.setLettersMode(!vm.lettersMode) },
+                        onClick = { showDialog = true },
                     )
                 }
 

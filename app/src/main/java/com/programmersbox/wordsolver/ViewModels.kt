@@ -227,13 +227,12 @@ class SettingsViewModel(context: Context) : ViewModel() {
     var scrollToItem by mutableStateOf(false)
     var columnCount by mutableStateOf(3)
     val systemThemeMode by lazy { settingsHandling.systemThemeMode }
+    val letterType by lazy { settingsHandling.lettersUiType }
     val themeIndex by lazy {
         settingsHandling.themeIndex.map { index -> Theme.values().find { it.ordinal == index } ?: Theme.Default }
     }
 
     val themeIndexes by lazy { settingsHandling.themeIndex }
-
-    var lettersMode by mutableStateOf(false)
 
     init {
         settingsHandling.columnAmount
@@ -242,10 +241,6 @@ class SettingsViewModel(context: Context) : ViewModel() {
 
         settingsHandling.scrollToItem
             .onEach { scrollToItem = it }
-            .launchIn(viewModelScope)
-
-        settingsHandling.lettersMode
-            .onEach { lettersMode = it }
             .launchIn(viewModelScope)
     }
 
@@ -267,7 +262,7 @@ class SettingsViewModel(context: Context) : ViewModel() {
 
     fun setTheme(index: Int) = viewModelScope.launch { settingsHandling.setThemeIndex(index) }
     fun setSystemThemeMode(mode: SystemThemeMode) = viewModelScope.launch { settingsHandling.setSystemThemeMode(mode) }
-    fun setLettersMode(mode: Boolean) = viewModelScope.launch { settingsHandling.setLettersMode(mode) }
+    fun setLetterType(type: LetterUiType) = viewModelScope.launch { settingsHandling.setLettersType(type) }
 }
 
 class SavedDataHandling(context: Context) {
@@ -350,4 +345,7 @@ class SettingsHandling(context: Context) {
 
     val lettersMode = all.map { it.lettersMode }
     suspend fun setLettersMode(mode: Boolean) = preferences.update { setLettersMode(mode) }
+
+    val lettersUiType = all.map { it.letterUiType }
+    suspend fun setLettersType(type: LetterUiType) = preferences.update { setLetterUiType(type) }
 }

@@ -49,6 +49,7 @@ import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.core.view.WindowCompat
@@ -374,25 +375,70 @@ fun IntroShowCaseScope.BottomBar(
                 ) { Icon(Icons.Default.Clear, null, tint = Alizarin) }
             }
 
+            val type by settingsVm.letterType.collectAsState(initial = LetterUiType.Circle)
+
             Row(
                 horizontalArrangement = Arrangement.SpaceEvenly,
                 modifier = Modifier
-                    .height(48.dp)
+                    .height(if (type == LetterUiType.Circle) 250.dp else 48.dp)
                     .animateContentSize()
                     .fillMaxWidth()
             ) {
-                val cornerSize = 16.dp
-                vm.mainLetters.forEachIndexed { index, it ->
-                    OutlinedIconButton(
-                        onClick = { vm.updateGuess("${vm.wordGuess}$it") },
-                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary),
-                        modifier = if (settingsVm.lettersMode) Modifier.weight(1f) else Modifier,
-                        shape = if (settingsVm.lettersMode) when (index) {
-                            0 -> RoundedCornerShape(topStart = cornerSize, bottomStart = cornerSize)
-                            vm.mainLetters.lastIndex -> RoundedCornerShape(topEnd = cornerSize, bottomEnd = cornerSize)
-                            else -> RectangleShape
-                        } else CircleShape
-                    ) { Text(it.uppercase()) }
+                when (type) {
+                    LetterUiType.Circle -> {
+                        ComposeLock(
+                            options = vm.mainLetters.toList(),
+                            optionToString = { it.uppercase() },
+                            modifier = Modifier.size(height = 250.dp, width = 250.dp),
+                            sensitivity = 50f,
+                            dotsColor = MaterialTheme.colorScheme.primary,
+                            dotsSize = 45.sp.value,
+                            letterColor = MaterialTheme.colorScheme.onSurface,
+                            linesColor = MaterialTheme.colorScheme.primary,
+                            linesStroke = 30f,
+                            animationDuration = 200,
+                            animationDelay = 100,
+                            onStart = {
+                                vm.wordGuess = ""
+                                vm.updateGuess("${vm.wordGuess}${it.id}")
+                            },
+                            onDotConnected = { vm.updateGuess("${vm.wordGuess}${it.id}") },
+                            onResult = {
+                                if (it.isNotEmpty()) {
+                                    scope.launch {
+                                        val message = vm.guess {
+                                            if (settingsVm.scrollToItem) scope.launch { gridState.animateScrollToItem(it) }
+                                        }
+                                        vm.wordGuess = ""
+                                        snackbarHostState.currentSnackbarData?.dismiss()
+                                        snackbarHostState.showSnackbar(
+                                            message,
+                                            withDismissAction = true,
+                                            duration = SnackbarDuration.Short
+                                        )
+                                    }
+                                }
+                            }
+                        )
+                    }
+                    else -> {
+                        val cornerSize = 16.dp
+                        vm.mainLetters.forEachIndexed { index, it ->
+                            OutlinedIconButton(
+                                onClick = { vm.updateGuess("${vm.wordGuess}$it") },
+                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary),
+                                modifier = if (type == LetterUiType.Grouped) Modifier.weight(1f) else Modifier,
+                                shape = if (type == LetterUiType.Grouped) when (index) {
+                                    0 -> RoundedCornerShape(topStart = cornerSize, bottomStart = cornerSize)
+                                    vm.mainLetters.lastIndex -> RoundedCornerShape(
+                                        topEnd = cornerSize,
+                                        bottomEnd = cornerSize
+                                    )
+                                    else -> RectangleShape
+                                } else CircleShape
+                            ) { Text(it.uppercase()) }
+                        }
+                    }
                 }
             }
 

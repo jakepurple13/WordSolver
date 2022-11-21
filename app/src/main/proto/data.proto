@@ -14,6 +14,7 @@ message Settings {
   int32 themeIndex = 4;
   SystemThemeMode mode = 5;
   bool lettersMode = 6;
+  LetterUiType letterUiType = 7;
 }
 
 message AnagramWrapper {
@@ -26,4 +27,10 @@ enum SystemThemeMode {
   FollowSystem = 0;
   Day = 1;
   Night = 2;
+}
+
+enum LetterUiType {
+  Circle = 0;
+  Icons = 1;
+  Grouped = 2;
 }
