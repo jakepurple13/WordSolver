@@ -126,6 +126,7 @@ fun WordUi(
     val chatSheetState = rememberModalBottomSheetState(ModalBottomSheetValue.Hidden, skipHalfExpanded = true)
     val snackbarHostState = remember { SnackbarHostState() }
     val gridState = rememberLazyGridState()
+    val type by settingsVm.letterType.collectAsState(initial = LetterUiType.Circle)
 
     SnackbarHandler(vm = vm, snackbarHostState = snackbarHostState)
     BackButtonHandler(drawerState = drawerState, settingsDrawerState = settingsDrawerState)
@@ -154,7 +155,7 @@ fun WordUi(
                 ModalNavigationDrawer(
                     drawerContent = { DefinitionDrawer(vm) },
                     drawerState = drawerState,
-                    gesturesEnabled = vm.definition != null
+                    gesturesEnabled = vm.definition != null && (drawerState.isOpen || type != LetterUiType.Circle)
                 ) {
                     IntroShowCaseScaffold(
                         showIntroShowCase = settingsVm.showcase.collectAsState(initial = false).value,
