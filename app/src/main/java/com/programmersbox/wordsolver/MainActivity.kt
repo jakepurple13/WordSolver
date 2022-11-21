@@ -390,7 +390,7 @@ fun IntroShowCaseScope.BottomBar(
                             options = vm.mainLetters.toList(),
                             optionToString = { it.uppercase() },
                             modifier = Modifier.size(height = 250.dp, width = 250.dp),
-                            sensitivity = 50f,
+                            sensitivity = 100f,
                             dotsColor = MaterialTheme.colorScheme.primary,
                             dotsSize = 45.sp.value,
                             letterColor = MaterialTheme.colorScheme.onSurface,
