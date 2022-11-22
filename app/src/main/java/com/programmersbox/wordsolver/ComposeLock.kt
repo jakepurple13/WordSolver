@@ -41,9 +41,11 @@ fun <T : Any> ComposeLock(
     sensitivity: Float = dotsSize,
     linesColor: Color = dotsColor,
     linesStroke: Float,
+    circleStroke: Stroke = Stroke(width = linesStroke),
     animationDuration: Int = 200,
     animationDelay: Long = 100,
     onStart: (Dot<T>) -> Unit = {},
+    onDotRemoved: (Dot<T>) -> Unit = {},
     onDotConnected: (Dot<T>) -> Unit = {},
     onResult: (List<Dot<T>>) -> Unit = {}
 ) {
@@ -54,6 +56,9 @@ fun <T : Any> ComposeLock(
     }
     val connectedLines = remember { mutableListOf<Line>() }
     val connectedDots = remember { mutableListOf<Dot<T>>() }
+
+    var canRemove = remember { false }
+    var removableDot: Dot<T>? = remember { null }
 
     Canvas(
         modifier.pointerInteropFilter {
@@ -80,18 +85,17 @@ fun <T : Any> ComposeLock(
                 }
                 MotionEvent.ACTION_MOVE -> {
                     previewLine = previewLine.copy(end = Offset(it.x, it.y))
-                    for (dots in dotsList) {
-                        if (dots !in connectedDots) {
-                            if (
-                                it.x in Range(
-                                    dots.offset.x - sensitivity,
-                                    dots.offset.x + sensitivity
-                                ) &&
-                                it.y in Range(
-                                    dots.offset.y - sensitivity,
-                                    dots.offset.y + sensitivity
-                                )
-                            ) {
+                    dotsList.find { dots ->
+                        it.x in Range(
+                            dots.offset.x - sensitivity,
+                            dots.offset.x + sensitivity
+                        ) && it.y in Range(
+                            dots.offset.y - sensitivity,
+                            dots.offset.y + sensitivity
+                        )
+                    }
+                        ?.let { dots ->
+                            if (dots !in connectedDots) {
                                 if (previewLine.start != Offset(0f, 0f)) {
                                     connectedLines.add(
                                         Line(
@@ -112,8 +116,43 @@ fun <T : Any> ComposeLock(
                                 }
                                 previewLine = previewLine.copy(start = dots.offset)
                             }
+                            if (removableDot == null)
+                                removableDot = connectedDots.getOrNull(connectedDots.indexOf(dots) - 1)
                         }
-                    }
+
+                    //val dots = connectedDots.lastOrNull()
+                    /*if (removableDot != null && connectedDots.size >= 2) {
+                        if (
+                            it.x in Range(
+                                removableDot!!.offset.x - sensitivity,
+                                removableDot!!.offset.x + sensitivity
+                            ) &&
+                            it.y in Range(
+                                removableDot!!.offset.y - sensitivity,
+                                removableDot!!.offset.y + sensitivity
+                            )// && canRemove
+                        ) {
+                            canRemove = false
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                                connectedLines.removeIf { it.end == removableDot!!.offset }
+                            }
+                            connectedDots.removeLastOrNull()
+                            onDotRemoved(removableDot!!)
+                            removableDot = null
+                            connectedDots.lastOrNull()?.let { previewLine = previewLine.copy(start = it.offset) }
+                        } else if (
+                            it.x !in Range(
+                                removableDot!!.offset.x - sensitivity,
+                                removableDot!!.offset.x + sensitivity
+                            ) &&
+                            it.y !in Range(
+                                removableDot!!.offset.y - sensitivity,
+                                removableDot!!.offset.y + sensitivity
+                            )
+                        ) {
+                            canRemove = true
+                        }
+                    }*/
                 }
                 MotionEvent.ACTION_UP -> {
                     previewLine = previewLine.copy(start = Offset(0f, 0f), end = Offset(0f, 0f))
@@ -127,12 +166,12 @@ fun <T : Any> ComposeLock(
     ) {
         drawCircle(
             color = dotsColor,
-            radius = size.width / 2,
-            style = Stroke(width = 2.dp.value),
+            radius = size.width / 2 - circleStroke.width,
+            style = circleStroke,
             center = center
         )
 
-        val radius = (size.width / 2) - (dotsSize * 2)
+        val radius = (size.width / 2) - (dotsSize * 2) - circleStroke.width
 
         if (dotsList.size < options.size) {
             options.forEachIndexed { index, t ->
@@ -218,6 +257,7 @@ fun ComposeLockPreview() {
         50.sp.value,
         Color.White,
         30f,
+        Stroke(width = 30f),
         200,
         100,
         onStart = { println(it) },

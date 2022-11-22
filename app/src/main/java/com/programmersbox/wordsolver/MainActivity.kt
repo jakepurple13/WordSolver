@@ -43,6 +43,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
@@ -393,16 +394,18 @@ fun IntroShowCaseScope.BottomBar(
                             modifier = Modifier.size(height = 250.dp, width = 250.dp),
                             sensitivity = 100f,
                             dotsColor = MaterialTheme.colorScheme.primary,
-                            dotsSize = 45.sp.value,
+                            dotsSize = 50.sp.value,
                             letterColor = MaterialTheme.colorScheme.onSurface,
                             linesColor = MaterialTheme.colorScheme.primary,
-                            linesStroke = 30f,
+                            linesStroke = 50f,
+                            circleStroke = Stroke(width = 4.dp.value),
                             animationDuration = 200,
                             animationDelay = 100,
                             onStart = {
                                 vm.wordGuess = ""
                                 vm.updateGuess("${vm.wordGuess}${it.id}")
                             },
+                            onDotRemoved = { vm.updateGuess(vm.wordGuess.removeSuffix(it.id.toString())) },
                             onDotConnected = { vm.updateGuess("${vm.wordGuess}${it.id}") },
                             onResult = {
                                 if (it.isNotEmpty()) {
