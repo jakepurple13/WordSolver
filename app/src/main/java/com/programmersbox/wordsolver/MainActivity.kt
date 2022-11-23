@@ -388,7 +388,7 @@ fun IntroShowCaseScope.BottomBar(
             ) {
                 when (type) {
                     LetterUiType.Circle -> {
-                        ComposeLock(
+                        PatternInput(
                             options = vm.mainLetters.toList(),
                             optionToString = { it.uppercase() },
                             modifier = Modifier.size(height = 250.dp, width = 250.dp),

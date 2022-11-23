@@ -8,8 +8,10 @@ import androidx.compose.animation.core.AnimationVector1D
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
+import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
@@ -31,7 +33,7 @@ import kotlin.math.sin
 
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
-fun <T : Any> ComposeLock(
+fun <T : Any> PatternInput(
     options: List<T>,
     modifier: Modifier = Modifier,
     optionToString: (T) -> String = { it.toString() },
@@ -115,13 +117,15 @@ fun <T : Any> ComposeLock(
                                     dots.size.animateTo(dotsSize, tween(animationDuration))
                                 }
                                 previewLine = previewLine.copy(start = dots.offset)
+                            } else {
+
                             }
                             if (removableDot == null)
                                 removableDot = connectedDots.getOrNull(connectedDots.indexOf(dots) - 1)
                         }
 
-                    //val dots = connectedDots.lastOrNull()
-                    /*if (removableDot != null && connectedDots.size >= 2) {
+                    /*val dots = connectedDots.lastOrNull()
+                    if (removableDot != null && connectedDots.size >= 2) {
                         if (
                             it.x in Range(
                                 removableDot!!.offset.x - sensitivity,
@@ -243,25 +247,32 @@ data class Line(
 
 @Preview
 @Composable
-fun ComposeLockPreview() {
-    ComposeLock(
-        options = listOf("h", "e", "l", "l", "o", "!", "!"),
-        modifier = Modifier
-            .width(500.dp)
-            .height(1000.dp)
-            .background(Color.Black),
-        { it },
-        Color.White,
-        100f,
-        Color.White,
-        50.sp.value,
-        Color.White,
-        30f,
-        Stroke(width = 30f),
-        200,
-        100,
-        onStart = { println(it) },
-        onDotConnected = { println(it) },
-        onResult = { println(it.map { it.id }) }
-    )
+fun PatternInputPreview() {
+    var wordGuess by remember { mutableStateOf("") }
+    Column {
+        Text(wordGuess)
+        PatternInput(
+            options = listOf("h", "e", "l", "l", "o", "!", "!"),
+            modifier = Modifier
+                .width(500.dp)
+                .height(1000.dp)
+                .background(Color.Black),
+            optionToString = { it },
+            dotsColor = Color.White,
+            dotsSize = 100f,
+            letterColor = Color.White,
+            sensitivity = 50.sp.value,
+            linesColor = Color.White,
+            linesStroke = 30f,
+            circleStroke = Stroke(width = 30f),
+            animationDuration = 200,
+            animationDelay = 100,
+            onStart = {
+                wordGuess = ""
+                wordGuess = it.id
+            },
+            onDotConnected = { wordGuess = "$wordGuess${it.id}" },
+            onResult = { /*Does a final thing*/ }
+        )
+    }
 }
