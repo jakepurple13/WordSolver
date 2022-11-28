@@ -60,27 +60,31 @@ fun <T : Any> PatternInput(
         modifier.pointerInteropFilter {
             when (it.action) {
                 MotionEvent.ACTION_DOWN -> {
-                    for (dots in dotsList) {
-                        if (
-                            it.x in Range(dots.offset.x - sensitivity, dots.offset.x + sensitivity) &&
-                            it.y in Range(dots.offset.y - sensitivity, dots.offset.y + sensitivity)
-                        ) {
-                            connectedDots.add(dots)
-                            onStart(dots)
-                            scope.launch {
-                                dots.size.animateTo(
-                                    (dotsSize * 1.8).toFloat(),
-                                    tween(animationDuration)
-                                )
-                                delay(animationDelay)
-                                dots.size.animateTo(dotsSize, tween(animationDuration))
-                            }
-                            previewLine = previewLine.copy(start = Offset(dots.offset.x, dots.offset.y))
+                    dotsList.find { dots ->
+                        it.x in Range(
+                            dots.offset.x - sensitivity,
+                            dots.offset.x + sensitivity
+                        ) && it.y in Range(
+                            dots.offset.y - sensitivity,
+                            dots.offset.y + sensitivity
+                        )
+                    }?.let { dots ->
+                        connectedDots.add(dots)
+                        onStart(dots)
+                        scope.launch {
+                            dots.size.animateTo(
+                                (dotsSize * 1.8).toFloat(),
+                                tween(animationDuration)
+                            )
+                            delay(animationDelay)
+                            dots.size.animateTo(dotsSize, tween(animationDuration))
                         }
+                        previewLine = previewLine.copy(start = Offset(dots.offset.x, dots.offset.y))
                     }
                 }
                 MotionEvent.ACTION_MOVE -> {
                     previewLine = previewLine.copy(end = Offset(it.x, it.y))
+                    //Connecting and adding
                     dotsList.find { dots ->
                         it.x in Range(
                             dots.offset.x - sensitivity,
@@ -117,6 +121,7 @@ fun <T : Any> PatternInput(
                             }
                         }
 
+                    //Checking if the last one should be removed
                     if (removableDot != null && connectedDots.size >= 2) {
                         if (
                             it.x in Range(
@@ -227,9 +232,6 @@ data class PatternColors(
     val dotsColor: Color,
     val linesColor: Color,
     val letterColor: Color,
-    val selectedLetterColor: Color,
-    val selectedCircleColor: Color,
-    val selectedDotCircleColor: Color
 )
 
 object PatternInputDefaults {
@@ -238,16 +240,10 @@ object PatternInputDefaults {
         dotsColor: Color = Color.White,
         linesColor: Color = Color.White,
         letterColor: Color = Color.White,
-        selectedLetterColor: Color = letterColor,
-        selectedCircleColor: Color = linesColor,
-        selectedDotCircleColor: Color = dotsColor
     ) = PatternColors(
         dotsColor = dotsColor,
         linesColor = linesColor,
         letterColor = letterColor,
-        selectedCircleColor = selectedCircleColor,
-        selectedDotCircleColor = selectedDotCircleColor,
-        selectedLetterColor = selectedLetterColor
     )
 }
 

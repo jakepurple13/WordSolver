@@ -395,7 +395,7 @@ fun IntroShowCaseScope.BottomBar(
                             colors = PatternInputDefaults.defaultColors(
                                 dotsColor = MaterialTheme.colorScheme.primary,
                                 linesColor = MaterialTheme.colorScheme.onSurface,
-                                letterColor = MaterialTheme.colorScheme.primary
+                                letterColor = MaterialTheme.colorScheme.primary,
                             ),
                             sensitivity = 100f,
                             dotsSize = 50.sp.value,
