@@ -392,11 +392,13 @@ fun IntroShowCaseScope.BottomBar(
                             options = vm.mainLetters.toList(),
                             optionToString = { it.uppercase() },
                             modifier = Modifier.size(height = 250.dp, width = 250.dp),
+                            colors = PatternInputDefaults.defaultColors(
+                                dotsColor = MaterialTheme.colorScheme.primary,
+                                linesColor = MaterialTheme.colorScheme.onSurface,
+                                letterColor = MaterialTheme.colorScheme.primary
+                            ),
                             sensitivity = 100f,
-                            dotsColor = MaterialTheme.colorScheme.primary,
                             dotsSize = 50.sp.value,
-                            letterColor = MaterialTheme.colorScheme.onSurface,
-                            linesColor = MaterialTheme.colorScheme.primary,
                             linesStroke = 50f,
                             circleStroke = Stroke(width = 4.dp.value),
                             animationDuration = 200,

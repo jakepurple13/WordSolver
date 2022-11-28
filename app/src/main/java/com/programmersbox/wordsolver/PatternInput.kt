@@ -37,11 +37,9 @@ fun <T : Any> PatternInput(
     options: List<T>,
     modifier: Modifier = Modifier,
     optionToString: (T) -> String = { it.toString() },
-    dotsColor: Color,
+    colors: PatternColors = PatternInputDefaults.defaultColors(),
     dotsSize: Float = 50f,
-    letterColor: Color = dotsColor,
     sensitivity: Float = dotsSize,
-    linesColor: Color = dotsColor,
     linesStroke: Float,
     circleStroke: Stroke = Stroke(width = linesStroke),
     animationDuration: Int = 200,
@@ -53,13 +51,9 @@ fun <T : Any> PatternInput(
 ) {
     val scope = rememberCoroutineScope()
     val dotsList = remember(options) { mutableListOf<Dot<T>>() }
-    var previewLine by remember {
-        mutableStateOf(Line(Offset(0f, 0f), Offset(0f, 0f)))
-    }
+    var previewLine by remember { mutableStateOf(Line(Offset(0f, 0f), Offset(0f, 0f))) }
     val connectedLines = remember { mutableListOf<Line>() }
     val connectedDots = remember { mutableListOf<Dot<T>>() }
-
-    var canRemove = remember { false }
     var removableDot: Dot<T>? = remember { null }
 
     Canvas(
@@ -117,14 +111,12 @@ fun <T : Any> PatternInput(
                                     dots.size.animateTo(dotsSize, tween(animationDuration))
                                 }
                                 previewLine = previewLine.copy(start = dots.offset)
-                            } else {
-
+                            } else if (dots in connectedDots) {
+                                if (removableDot == null)
+                                    removableDot = connectedDots.getOrNull(connectedDots.indexOf(dots) - 1)
                             }
-                            if (removableDot == null)
-                                removableDot = connectedDots.getOrNull(connectedDots.indexOf(dots) - 1)
                         }
 
-                    /*val dots = connectedDots.lastOrNull()
                     if (removableDot != null && connectedDots.size >= 2) {
                         if (
                             it.x in Range(
@@ -134,29 +126,14 @@ fun <T : Any> PatternInput(
                             it.y in Range(
                                 removableDot!!.offset.y - sensitivity,
                                 removableDot!!.offset.y + sensitivity
-                            )// && canRemove
-                        ) {
-                            canRemove = false
-                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                                connectedLines.removeIf { it.end == removableDot!!.offset }
-                            }
-                            connectedDots.removeLastOrNull()
-                            onDotRemoved(removableDot!!)
-                            removableDot = null
-                            connectedDots.lastOrNull()?.let { previewLine = previewLine.copy(start = it.offset) }
-                        } else if (
-                            it.x !in Range(
-                                removableDot!!.offset.x - sensitivity,
-                                removableDot!!.offset.x + sensitivity
-                            ) &&
-                            it.y !in Range(
-                                removableDot!!.offset.y - sensitivity,
-                                removableDot!!.offset.y + sensitivity
                             )
                         ) {
-                            canRemove = true
+                            connectedLines.removeLastOrNull()
+                            connectedDots.removeLastOrNull()?.let(onDotRemoved)
+                            removableDot = null
+                            connectedDots.lastOrNull()?.let { previewLine = previewLine.copy(start = it.offset) }
                         }
-                    }*/
+                    }
                 }
                 MotionEvent.ACTION_UP -> {
                     previewLine = previewLine.copy(start = Offset(0f, 0f), end = Offset(0f, 0f))
@@ -169,7 +146,7 @@ fun <T : Any> PatternInput(
         }
     ) {
         drawCircle(
-            color = dotsColor,
+            color = colors.dotsColor,
             radius = size.width / 2 - circleStroke.width,
             style = circleStroke,
             center = center
@@ -187,14 +164,14 @@ fun <T : Any> PatternInput(
                     Dot(
                         id = t,
                         offset = Offset(x = x, y = y),
-                        size = Animatable(dotsSize)
+                        size = Animatable(dotsSize),
                     )
                 )
             }
         }
         if (previewLine.start != Offset(0f, 0f) && previewLine.end != Offset(0f, 0f)) {
             drawLine(
-                color = linesColor,
+                color = colors.linesColor,
                 start = previewLine.start,
                 end = previewLine.end,
                 strokeWidth = linesStroke,
@@ -203,7 +180,7 @@ fun <T : Any> PatternInput(
         }
         for (dots in dotsList) {
             drawCircle(
-                color = dotsColor,
+                color = colors.dotsColor,
                 radius = dotsSize * 2,
                 style = Stroke(width = 2.dp.value),
                 center = dots.offset
@@ -214,7 +191,7 @@ fun <T : Any> PatternInput(
                     dots.offset.x,
                     dots.offset.y + (dots.size.value / 3),
                     Paint().apply {
-                        color = letterColor.toArgb()
+                        color = colors.letterColor.toArgb()
                         textSize = dots.size.value
                         textAlign = Paint.Align.CENTER
                     }
@@ -223,7 +200,7 @@ fun <T : Any> PatternInput(
         }
         for (line in connectedLines) {
             drawLine(
-                color = linesColor,
+                color = colors.linesColor,
                 start = line.start,
                 end = line.end,
                 strokeWidth = linesStroke,
@@ -245,6 +222,35 @@ data class Line(
     val end: Offset
 )
 
+@Immutable
+data class PatternColors(
+    val dotsColor: Color,
+    val linesColor: Color,
+    val letterColor: Color,
+    val selectedLetterColor: Color,
+    val selectedCircleColor: Color,
+    val selectedDotCircleColor: Color
+)
+
+object PatternInputDefaults {
+    @Composable
+    fun defaultColors(
+        dotsColor: Color = Color.White,
+        linesColor: Color = Color.White,
+        letterColor: Color = Color.White,
+        selectedLetterColor: Color = letterColor,
+        selectedCircleColor: Color = linesColor,
+        selectedDotCircleColor: Color = dotsColor
+    ) = PatternColors(
+        dotsColor = dotsColor,
+        linesColor = linesColor,
+        letterColor = letterColor,
+        selectedCircleColor = selectedCircleColor,
+        selectedDotCircleColor = selectedDotCircleColor,
+        selectedLetterColor = selectedLetterColor
+    )
+}
+
 @Preview
 @Composable
 fun PatternInputPreview() {
@@ -258,11 +264,9 @@ fun PatternInputPreview() {
                 .height(1000.dp)
                 .background(Color.Black),
             optionToString = { it },
-            dotsColor = Color.White,
+            colors = PatternInputDefaults.defaultColors(Color.White, Color.White, Color.White),
             dotsSize = 100f,
-            letterColor = Color.White,
             sensitivity = 50.sp.value,
-            linesColor = Color.White,
             linesStroke = 30f,
             circleStroke = Stroke(width = 30f),
             animationDuration = 200,
