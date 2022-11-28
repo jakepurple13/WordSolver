@@ -28,10 +28,11 @@ jobs:
           java-version: 11
 
       - name: Get tag name
-          id: get_tag_name
-          run: |
-            set -x
-            echo "VERSION_TAG=${GITHUB_REF/refs\/tags\//}" >> $GITHUB_ENV
+        id: get_tag_name
+        run: |
+          set -x
+          echo "VERSION_TAG=${GITHUB_REF/refs\/tags\//}" >> $GITHUB_ENV
+
       - name: Bump version
         uses: chkfung/android-version-actions@v1.1
         with:
