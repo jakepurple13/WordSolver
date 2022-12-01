@@ -25,6 +25,7 @@ class WordViewModel(context: Context) : ViewModel() {
             context.resources.openRawResource(R.raw.words)
                 .bufferedReader()
                 .readLines()
+                .filter { it.all(Char::isLetter) }
         )
     }
 
