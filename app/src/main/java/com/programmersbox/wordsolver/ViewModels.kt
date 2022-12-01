@@ -20,7 +20,12 @@ class WordViewModel(context: Context) : ViewModel() {
     private val savedDataHandling = SavedDataHandling(context)
 
     private val networkRetrieving: NetworkRetrieving by lazy {
-        if (BuildConfig.BUILD_TYPE == "lanVersion") LanVersion() else APIVersion()
+        if (BuildConfig.BUILD_TYPE == "lanVersion") LanVersion()
+        else APIVersion(
+            context.resources.openRawResource(R.raw.words)
+                .bufferedReader()
+                .readLines()
+        )
     }
 
     var shouldStartNewGame by mutableStateOf(false)

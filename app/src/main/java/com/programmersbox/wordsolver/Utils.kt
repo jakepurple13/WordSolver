@@ -198,14 +198,15 @@ class LanVersion : NetworkRetrieving {
     }
 }
 
-class APIVersion : NetworkRetrieving {
+class APIVersion(private val words: List<String>) : NetworkRetrieving {
 
     override suspend fun getLettersAndAnagrams(
         savedDataHandling: SavedDataHandling,
         onError: suspend (Throwable?) -> Unit
     ) {
         val newLetters = withContext(Dispatchers.IO) {
-            getLetters().fold(
+            //getLetters()
+            runCatching { words.filter { it.length == 7 }.shuffled() }.fold(
                 onSuccess = {
                     onError(null)
                     it.firstOrNull()
@@ -222,7 +223,11 @@ class APIVersion : NetworkRetrieving {
             ).also { savedDataHandling.updateMainLetters(it) }
         }
         withContext(Dispatchers.IO) {
-            getAnagram(newLetters).fold(
+            //getAnagram(newLetters)
+            runCatching {
+                words.filter { it.length >= 3 && it isAnagramOf newLetters }
+                    .map { Anagrams(it.uppercase(), it.length, false) }
+            }.fold(
                 onSuccess = {
                     onError(null)
                     it
@@ -237,6 +242,19 @@ class APIVersion : NetworkRetrieving {
     }
 
     override suspend fun getDefinition(word: String) = getWordDefinition(word)
+}
+
+infix fun String.isAnagramOf(word: String): Boolean = isAnagram(word, this)
+
+fun isAnagram(word: String, anagram: String): Boolean {
+    val c = word.groupBy { it.lowercaseChar() }.mapValues { it.value.size }
+    val a = anagram.groupBy { it.lowercaseChar() }.mapValues { it.value.size }
+
+    for (i in a) {
+        c[i.key]?.let { if (it < i.value) return false } ?: return false
+    }
+
+    return true
 }
 
 val Context.appVersion: String
