@@ -399,6 +399,7 @@ fun IntroShowCaseScope.BottomBar(
                             ),
                             sensitivity = 100f,
                             dotsSize = 50.sp.value,
+                            dotsCircleSize = 50.sp.value * 1.5f,
                             linesStroke = 50f,
                             circleStroke = Stroke(width = 4.dp.value),
                             animationDuration = 200,

@@ -39,6 +39,7 @@ fun <T : Any> PatternInput(
     optionToString: (T) -> String = { it.toString() },
     colors: PatternColors = PatternInputDefaults.defaultColors(),
     dotsSize: Float = 50f,
+    dotsCircleSize: Float = dotsSize * 2,
     sensitivity: Float = dotsSize,
     linesStroke: Float,
     circleStroke: Stroke = Stroke(width = linesStroke),
@@ -186,7 +187,7 @@ fun <T : Any> PatternInput(
         for (dots in dotsList) {
             drawCircle(
                 color = colors.dotsColor,
-                radius = dotsSize * 2,
+                radius = dotsCircleSize,
                 style = Stroke(width = 2.dp.value),
                 center = dots.offset
             )
