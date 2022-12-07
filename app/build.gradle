@@ -4,6 +4,7 @@ plugins {
     id "com.google.protobuf" version "0.8.17"
     id 'kotlinx-serialization'
     id "com.starter.easylauncher" version "5.1.2"
+    id "io.github.jakepurple13.ProjectInfo"
 }
 
 android {
@@ -14,8 +15,8 @@ android {
         applicationId "com.programmersbox.wordsolver"
         minSdk 23
         targetSdk 33
-        versionCode 7
-        versionName "1.7"
+        versionCode 8
+        versionName "1.8"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables { useSupportLibrary true }
@@ -70,6 +71,10 @@ android {
             excludes += '/META-INF/{AL2.0,LGPL2.1}'
         }
     }
+}
+
+projectInfo {
+    excludeFileTypes.add("txt")
 }
 
 dependencies {
