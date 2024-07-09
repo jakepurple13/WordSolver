@@ -9,12 +9,12 @@ plugins {
 
 android {
     namespace 'com.programmersbox.wordsolver'
-    compileSdk 33
+    compileSdk 34
 
     defaultConfig {
         applicationId "com.programmersbox.wordsolver"
         minSdk 23
-        targetSdk 33
+        targetSdk 34
         versionCode 8
         versionName "1.8"
 
