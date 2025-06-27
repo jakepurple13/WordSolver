@@ -59,9 +59,6 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.canopas.lib.showcase.IntroShowCaseScaffold
 import com.canopas.lib.showcase.IntroShowCaseScope
-import com.programmersbox.chatfunctionality.ChatIcon
-import com.programmersbox.chatfunctionality.ChatUi
-import com.programmersbox.chatfunctionality.ChatViewModel
 import com.programmersbox.wordsolver.ui.theme.*
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.firstOrNull
@@ -114,7 +111,7 @@ fun WordUi(
     context: Context = LocalContext.current,
     vm: WordViewModel = viewModel { WordViewModel(context) },
     settingsVm: SettingsViewModel = viewModel { SettingsViewModel(context) },
-    chatViewModel: ChatViewModel = viewModel { ChatViewModel(BuildConfig.IP4_ADDRESS_NO_PORT, BuildConfig.IP4_ADDRESS) }
+    //chatViewModel: ChatViewModel = viewModel { ChatViewModel(BuildConfig.IP4_ADDRESS_NO_PORT, BuildConfig.IP4_ADDRESS) }
 ) {
     LoadingDialog(
         showLoadingDialog = vm.isLoading,
@@ -134,7 +131,7 @@ fun WordUi(
 
     WordDialogs(vm)
 
-    IncludeChat(chatSheetState = chatSheetState, chatViewModel = chatViewModel) {
+    IncludeChat(chatSheetState = chatSheetState/*, chatViewModel = chatViewModel*/) {
         ModalBottomSheetLayout(
             sheetState = bottomSheetState,
             sheetContent = { ThemeChooser(settingsVm) },
@@ -182,7 +179,7 @@ fun WordUi(
                                 BottomBar(
                                     vm = vm,
                                     settingsVm = settingsVm,
-                                    chatViewModel = chatViewModel,
+                                    //chatViewModel = chatViewModel,
                                     gridState = gridState,
                                     snackbarHostState = snackbarHostState,
                                     chatSheetState = chatSheetState
@@ -211,10 +208,11 @@ fun WordUi(
 @Composable
 fun IncludeChat(
     chatSheetState: ModalBottomSheetState,
-    chatViewModel: ChatViewModel,
+    //chatViewModel: ChatViewModel,
     content: @Composable () -> Unit
 ) {
-    if (BuildConfig.BUILD_TYPE == "lanVersion") {
+    content()
+    /*if (BuildConfig.BUILD_TYPE == "lanVersion") {
         ModalBottomSheetLayout(
             sheetState = chatSheetState,
             sheetContent = {
@@ -231,7 +229,7 @@ fun IncludeChat(
         )
     } else {
         content()
-    }
+    }*/
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -343,7 +341,7 @@ fun IntroShowCaseScope.WordContent(
 fun IntroShowCaseScope.BottomBar(
     vm: WordViewModel,
     settingsVm: SettingsViewModel,
-    chatViewModel: ChatViewModel,
+    //chatViewModel: ChatViewModel,
     gridState: LazyGridState,
     snackbarHostState: SnackbarHostState,
     chatSheetState: ModalBottomSheetState
@@ -470,7 +468,7 @@ fun IntroShowCaseScope.BottomBar(
                     }
                 ) { Icon(Icons.Default.Shuffle, null) }
 
-                ChatIcon(chatViewModel = chatViewModel, chatState = chatSheetState, scope = scope)
+                //ChatIcon(chatViewModel = chatViewModel, chatState = chatSheetState, scope = scope)
 
                 FilledTonalButton(
                     onClick = {
@@ -528,8 +526,8 @@ fun DefinitionDrawer(vm: WordViewModel) {
                     items(definition.meanings.orEmpty()) {
                         ElevatedCard {
                             ListItem(
-                                headlineText = { Text(it.partOfSpeech.orEmpty()) },
-                                supportingText = {
+                                headlineContent = { Text(it.partOfSpeech.orEmpty()) },
+                                supportingContent = {
                                     Column {
                                         it.definitions?.forEach { d ->
                                             Text(d.definition.orEmpty())
@@ -645,7 +643,7 @@ fun WordDialogs(vm: WordViewModel) {
             text = {
                 LazyColumn {
                     items(vm.scoreInfo.entries.toList()) {
-                        ListItem(headlineText = { Text("${it.key} = ${it.value} points") })
+                        ListItem(headlineContent = { Text("${it.key} = ${it.value} points") })
                     }
                 }
             },

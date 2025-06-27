@@ -20,7 +20,6 @@ import androidx.glance.appwidget.action.actionRunCallback
 import androidx.glance.appwidget.appWidgetBackground
 import androidx.glance.appwidget.cornerRadius
 import androidx.glance.appwidget.state.updateAppWidgetState
-import androidx.glance.appwidget.unit.ColorProvider
 import androidx.glance.layout.Alignment
 import androidx.glance.layout.Column
 import androidx.glance.layout.fillMaxSize
@@ -30,7 +29,7 @@ import androidx.glance.text.Text
 import androidx.glance.text.TextAlign
 import androidx.glance.text.TextStyle
 import java.io.File
-
+/*
 class CurrentLettersWidget : GlanceAppWidget() {
     override var stateDefinition: GlanceStateDefinition<*> = LetterInfoStateDefinition
 
@@ -56,7 +55,7 @@ class CurrentLettersWidget : GlanceAppWidget() {
             )
         )
 
-        Column(
+        *//*Column(
             modifier = GlanceModifier
                 .fillMaxSize()
                 .background(
@@ -100,7 +99,7 @@ class CurrentLettersWidget : GlanceAppWidget() {
                         .clickable(onClick = actionRunCallback<CurrentLettersClickAction>())
                 )
             }
-        }
+        }*//*
     }
 }
 
@@ -126,4 +125,4 @@ class CurrentLettersClickAction : ActionCallback {
 object LetterInfoStateDefinition : GlanceStateDefinition<Preferences> {
     override suspend fun getDataStore(context: Context, fileKey: String): DataStore<Preferences> = context.dataStore
     override fun getLocation(context: Context, fileKey: String): File = context.dataStoreFile("settings")
-}
+}*/

@@ -14,6 +14,6 @@ dependencyResolutionManagement {
 }
 rootProject.name = "WordSolver"
 include ':app'
-include ':chatfunctionality'
+/*include ':chatfunctionality'
 include ':chatfunctionalitynoop'
-include ':wordoftheday'
+include ':wordoftheday'*/

@@ -47,7 +47,7 @@ fun ThemeChooser(settingsVm: SettingsViewModel) {
             val state by settingsVm.systemThemeMode.collectAsState(SystemThemeMode.FollowSystem)
 
             ListItem(
-                headlineText = { Text("Select Theme Mode") },
+                headlineContent = { Text("Select Theme Mode") },
                 trailingContent = {
                     GroupButton(
                         selected = state,
@@ -61,7 +61,7 @@ fun ThemeChooser(settingsVm: SettingsViewModel) {
                 }
             )
 
-            ListItem(headlineText = { Text("Select Theme") })
+            ListItem(headlineContent = { Text("Select Theme") })
 
             val context = LocalContext.current
             val darkTheme by settingsVm.systemThemeMode.collectAsState(SystemThemeMode.FollowSystem)

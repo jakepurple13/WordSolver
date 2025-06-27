@@ -30,7 +30,7 @@
                 android:value="" />
         </activity>
 
-        <receiver
+        <!--<receiver
             android:name=".CurrentLettersWidgetReceiver"
             android:enabled="@bool/glance_appwidget_available"
             android:exported="false">
@@ -41,7 +41,7 @@
             <meta-data
                 android:name="android.appwidget.provider"
                 android:resource="@xml/current_letter_widget_info" />
-        </receiver>
+        </receiver>-->
     </application>
 
 </manifest>

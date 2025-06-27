@@ -65,8 +65,8 @@ fun SettingsDrawer(
                     NavigationDrawerItem(
                         label = {
                             ListItem(
-                                headlineText = { Text("Column Count") },
-                                supportingText = { Text("Choose how many columns there are. Click here to reset to default (3).") },
+                                headlineContent = { Text("Column Count") },
+                                supportingContent = { Text("Choose how many columns there are. Click here to reset to default (3).") },
                                 colors = ListItemDefaults.colors(containerColor = Color.Transparent)
                             )
                         },
@@ -89,8 +89,8 @@ fun SettingsDrawer(
                     NavigationDrawerItem(
                         label = {
                             ListItem(
-                                headlineText = { Text("Show Tutorial") },
-                                supportingText = { Text("It might only come up on next app open") },
+                                headlineContent = { Text("Show Tutorial") },
+                                supportingContent = { Text("It might only come up on next app open") },
                                 colors = ListItemDefaults.colors(containerColor = Color.Transparent)
                             )
                         },
@@ -108,7 +108,7 @@ fun SettingsDrawer(
                     NavigationDrawerItem(
                         label = {
                             ListItem(
-                                headlineText = { Text("Change Theme") },
+                                headlineContent = { Text("Change Theme") },
                                 colors = ListItemDefaults.colors(containerColor = Color.Transparent)
                             )
                         },
@@ -139,7 +139,7 @@ fun SettingsDrawer(
                                                     onClick = { vm.setLetterType(it) }
                                                 )
                                             },
-                                            headlineText = { Text(it.name) }
+                                            headlineContent = { Text(it.name) }
                                         )
                                     }
                                 }
@@ -151,7 +151,7 @@ fun SettingsDrawer(
                     NavigationDrawerItem(
                         label = {
                             ListItem(
-                                headlineText = { Text("Letters UI") },
+                                headlineContent = { Text("Letters UI") },
                                 colors = ListItemDefaults.colors(containerColor = Color.Transparent),
                                 trailingContent = { Text(type.name) }
                             )
@@ -168,8 +168,8 @@ fun SettingsDrawer(
                         NavigationDrawerItem(
                             label = {
                                 ListItem(
-                                    headlineText = { Text("Scroll to Item on Already Guessed") },
-                                    supportingText = {
+                                    headlineContent = { Text("Scroll to Item on Already Guessed") },
+                                    supportingContent = {
                                         Text("Enable if you want to be scrolled to where in the grid the already guessed word is.")
                                     },
                                     colors = ListItemDefaults.colors(containerColor = Color.Transparent)
@@ -194,8 +194,8 @@ fun SettingsDrawer(
                         NavigationDrawerItem(
                             label = {
                                 ListItem(
-                                    headlineText = { Text("Win Game") },
-                                    overlineText = { Text("Cheat") },
+                                    headlineContent = { Text("Win Game") },
+                                    overlineContent = { Text("Cheat") },
                                     colors = ListItemDefaults.colors(containerColor = Color.Transparent)
                                 )
                             },
