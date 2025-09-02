@@ -14,10 +14,10 @@ android {
 
     defaultConfig {
         applicationId "com.programmersbox.wordsolver"
-        minSdk 23
+        minSdk 27
         targetSdk 36
-        versionCode 12
-        versionName "1.11"
+        versionCode 13
+        versionName "1.13"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables { useSupportLibrary true }
